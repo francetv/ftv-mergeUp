@@ -1,0 +1,21 @@
+{
+  "name": "mergeup",
+  "version": "0.0.0",
+  "description": "Automates creating a merge request and notifying teammates",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "binary": {
+    "mergeUp": "bin/mergeUp.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.3.0",
+    "git-wrapper": "^0.1.1",
+    "hipchatter": "^0.1.3",
+    "request": "^2.45.0",
+    "rsvp": "^3.0.14"
+  }
+}
