@@ -6,9 +6,9 @@ var automateMerge = require('../index.js');
 var pkg = require('../package.json');
 
 program
-    .version(pkg.version)
+    .version(pkg.version);
 
 
 program.parse(process.argv);
 
-automateMerge(2447, 2445, 'dev', 'master', 'test1');
+automateMerge(2467, 2445, 'dev', 'master', 'test1');

@@ -1,8 +1,11 @@
 {
-    "gitlabUserId": "391",
+    "gitlabUserId": "577",
+    "gitlabPrivateToken": "xNXEqSHWcknFYg5rQrtV",
     "targetProjectId": "",
-    "hipchatUserToken": "BRMmecYvWTML9hJtB9ftBivkwjN0STnr17xo0iZ0",
+    "hipchatUserToken": "YZ95s6ZhzpxaIgAd26nsAKkUJZrNsvKbPx6rM2GJ",
     "hipchatRoomId": "875921",
     "forkProjectId": 433,
-    "upstreamProjectId": 131
+    "upstreamProjectId": 131,
+
+    "projectUrl": "https://gitlab.ftven.net/player/js_jquery_player/"
 }

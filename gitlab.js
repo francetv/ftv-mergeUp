@@ -1,5 +1,6 @@
 var request = require('request');
 var rsvp = require('rsvp');
+var config = require('./config.json');
 // /projects/:id/merge_requests
 var apiPrefix = 'https://gitlab.ftven.net/api/v3/';
 
@@ -11,40 +12,38 @@ function createMergeRequest(forkProjectId, upstreamProjectId, forkBranch, uptsre
                 url: apiPrefix + 'projects/' + forkProjectId + '/merge_requests/',
                 body: {
                     source_project_id: forkProjectId,
-                    target_project_id : upstreamProjectId,
+                    target_project_id: upstreamProjectId,
                     source_branch: forkBranch,
                     target_branch: uptsreamBranch,
                     title: title,
-                    private_token: 'P8oCPsE5MqBTRHkxJ6qg'
+                    private_token: config.gitlabPrivateToken
                 },
                 json: true
             };
             var deferred = rsvp.defer();
-console.log(options);
+            console.log(options);
             request.post(
                 options,
                 function(error, response, body) {
                     console.log('result: ', body);
+                    console.log('result type: ', typeof body);
                     console.log('response: ', response.code);
-                    if(error) {
+                    if (error) {
                         return deferred.reject(error);
                     }
-                    if(body.error) {
-                        return deferred.reject(body.error);
+                    if (body.message) {
+                        return deferred.reject(body.message);
                     }
 
-                    if (!body.length) {
+                    if (!Object.keys(body).length) {
                         return deferred.reject(new Error('Empty answer'));
                     }
 
-                    deferred.resolve(body);
+                    deferred.resolve(body.iid);
                 }
             );
 
             return deferred.promise;
-        })
-        .then(function(response) {
-            return JSON.parse(response.body);
         });
 }
 

@@ -66,40 +66,40 @@ function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstream
     // GITLAB :
     // Get gitlab data
     .then(function() {
-        data.forkProjectId = gitlab.getProjectId(forkProject);
-        data.upstreamProjectId = gitlab.getProjectId(upstreamProject);
-    })
-    // send merge request gitlab
-    .then(function() {
-        var mergeRequestId;
-        return gitlab.createMergeRequest(
-            data.forkProjectId, // jrt's fork of jqp source project id
-            data.upstreamProjectId, // jqp target project id
-            data.forkBranch, // source branch
-            data.upstreamBranch, // target branch
-            title
-        );        
-    })
-    // send hipchat message
-    .then(function(mergeRequestId) {
-        var mergeRequestUrl =  'https://gitlab.ftven.net/player/js_jquery_player/merge_requests/' + mergeRequestId + '/diffs';
+            data.forkProjectId = gitlab.getProjectId(forkProject);
+            data.upstreamProjectId = gitlab.getProjectId(upstreamProject);
+        })
+        // send merge request gitlab
+        .then(function() {
+            var mergeRequestId;
+            return gitlab.createMergeRequest(
+                data.forkProjectId, // jrt's fork of jqp source project id
+                data.upstreamProjectId, // jqp target project id
+                data.forkBranch, // source branch
+                data.upstreamBranch, // target branch
+                title
+            );
+        })
+        // send hipchat message
+        .then(function(mergeRequestId) {
+            var mergeRequestUrl = config.projectUrl + 'merge_requests/' + mergeRequestId + '/diffs';
 
-        hipchat.notify(config.hipchatRoomId, {
-            message: '@here new merge request: <a href="' + mergeRequestUrl + '">test' + title + '</a>',
-            color: 'green',
-            token: 'YZ95s6ZhzpxaIgAd26nsAKkUJZrNsvKbPx6rM2GJ'
-        }, function(err) {
-            if (err == null) {
-                console.log('Successfully notified the room.');
-            } else {
-                console.log('Error : ', err);
-            }
+            hipchat.notify(config.hipchatRoomId, {
+                message: '@here New merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + title + '</a>',
+                color: 'green',
+                token: config.hipchatUserToken
+            }, function(err) {
+                if (err === null) {
+                    console.log('Successfully notified the room.');
+                } else {
+                    console.log('Error : ', err);
+                }
+            });
+        })
+        .catch(function(error) {
+            console.error(error);
+            process.exit(1);
         });
-    })
-    .catch(function(error) {
-        console.error(error);
-        process.exit(1);
-    });
 }
 
 module.exports = automateMergeRequest;
