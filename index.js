@@ -20,9 +20,12 @@ function gitExec() {
 
     args.push(function(error, result) {
         if (error) {
+            console.log(args[0] + "on " + args[1][0] + ": fail :", error);
             return deferred.reject(error);
         }
         deferred.resolve(result);
+
+        console.log(args[0] + ": success");
     });
 
     git.exec.apply(git, args);
@@ -44,28 +47,27 @@ function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstream
     // LOCAL GIT:
 
     // fetch
-    // .then(function() {
-    //     return gitExec('fetch', ['upstream']);
-    // })
-    // // rebase my branch
-    // .then(function(result) {
-    //     return gitExec('rebase', ['upstream/' + config.upstreamBranch])
-    //         .catch(function(error) {
-    //             gitExec('rebase', ['--abort']).then(function() {
-    //                 var rebaseError = new Error('Rebase failed');
-    //                 rebaseError.parent = error;
-    //                 throw rebaseError;
-    //             });
-    //         });
-    // })
-    // // push
-    // .then(function(result) {
-    //     return gitExec('push', ['origin']);
-    // })
-
-    // GITLAB :
-    // Get gitlab data
     .then(function() {
+            return gitExec('fetch', ['upstream']);
+        })
+        // rebase my branch
+        .then(function(result) {
+            return gitExec('rebase', ['upstream/' + data.upstreamBranch])
+                .catch(function(error) {
+                    gitExec('rebase', ['--abort']).then(function() {
+                        var rebaseError = new Error('Rebase failed');
+                        rebaseError.parent = error;
+                        throw rebaseError;
+                    });
+                });
+        })
+        // push
+        .then(function(result) {
+            return gitExec('push', ['origin', forkBranch, '-f']);
+        })
+        // GITLAB :
+        // Get gitlab data
+        .then(function() {
             data.forkProjectId = gitlab.getProjectId(forkProject);
             data.upstreamProjectId = gitlab.getProjectId(upstreamProject);
         })
