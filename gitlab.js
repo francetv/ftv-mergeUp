@@ -7,7 +7,7 @@ var apiPrefix = 'https://gitlab.ftven.net/api/v3/';
 function createMergeRequest(forkProjectId, upstreamProjectId, forkBranch, uptsreamBranch, title) {
     return rsvp.Promise.resolve()
         .then(function() {
-            console.log('requesting');
+            // console.log('requesting');
             var options = {
                 url: apiPrefix + 'projects/' + forkProjectId + '/merge_requests/',
                 body: {
@@ -21,12 +21,12 @@ function createMergeRequest(forkProjectId, upstreamProjectId, forkBranch, uptsre
                 json: true
             };
             var deferred = rsvp.defer();
-            console.log(options);
+            // console.log(options);
             request.post(
                 options,
                 function(error, response, body) {
-                    console.log('result: ', body);
-                    console.log('result type: ', typeof body);
+                    // console.log('result: ', body);
+                    // console.log('result type: ', typeof body);
                     if (error) {
                         return deferred.reject(error);
                     }
@@ -58,8 +58,8 @@ function getProjectId(projectName) {
     request.get(
         options,
         function(error, response, body) {
-            console.log('result: ', body);
-            console.log('result type: ', typeof body);
+            // console.log('result: ', body);
+            // console.log('result type: ', typeof body);
             if (error) {
                 return deferred.reject(error);
             }

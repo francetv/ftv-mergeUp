@@ -20,12 +20,12 @@ function gitExec() {
 
     args.push(function(error, result) {
         if (error) {
-            console.log(args[0] + "on " + args[1][0] + ": fail :", error);
+            // console.log(args[0] + "on " + args[1][0] + ": fail :", error);
             return deferred.reject(error);
         }
         deferred.resolve(result);
 
-        console.log(args[0] + ": success");
+        // console.log(args[0] + ": success");
     });
 
     git.exec.apply(git, args);
@@ -98,7 +98,7 @@ function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstream
                 token: config.hipchatUserToken
             }, function(err) {
                 if (err === null) {
-                    console.log('Successfully notified the room.');
+                    console.log('Successfully notified the room for merge request #' + mergeRequestId + '.');
                 } else {
                     console.log('Error : ', err);
                 }

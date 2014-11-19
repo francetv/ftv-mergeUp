@@ -10,7 +10,6 @@ program
 
 
 var args = program.parse(process.argv).args;
-console.log('args: ', args);
 if (args.length !== 5) {
     console.log('Usage : mergeup forkProject upstreamProject forkBranch upstreamBranch Title');
     return;
