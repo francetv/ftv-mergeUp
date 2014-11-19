@@ -9,6 +9,7 @@ program
     .version(pkg.version);
 
 
-args = program.parse(process.argv);
-
-automateMerge('nnavarro/test-project-dummy', 'team-player/test-project-dummy', 'branch3', 'master', 'test1');
+var args = program.parse(process.argv).args;
+console.log('args: ', args);
+automateMerge.apply(this, args);
+//'nnavarro/test-project-dummy', 'team-player/test-project-dummy', 'branch3', 'master', 'test1'

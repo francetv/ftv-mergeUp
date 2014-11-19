@@ -90,7 +90,7 @@ function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstream
         })
         // send hipchat message
         .then(function(mergeRequestId) {
-            var mergeRequestUrl = config.projectUrl + 'merge_requests/' + mergeRequestId + '/diffs';
+            var mergeRequestUrl = config.projectBaseUrl + upstreamProject + '/merge_requests/' + mergeRequestId + '/diffs';
 
             hipchat.notify(config.hipchatRoomId, {
                 message: '@here New merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + title + '</a>',
