@@ -27,7 +27,6 @@ function createMergeRequest(forkProjectId, upstreamProjectId, forkBranch, uptsre
                 function(error, response, body) {
                     console.log('result: ', body);
                     console.log('result type: ', typeof body);
-                    console.log('response: ', response.code);
                     if (error) {
                         return deferred.reject(error);
                     }
@@ -47,9 +46,36 @@ function createMergeRequest(forkProjectId, upstreamProjectId, forkBranch, uptsre
         });
 }
 
-function getProjectId(project) {
-    //TODO: get this id with the name
-    return project;
+function getProjectId(projectName) {
+    var deferred = rsvp.defer();
+    var encodedProjectPath = encodeURIComponent(projectName);
+
+    var options = {
+        url: apiPrefix + 'projects/' + encodedProjectPath + '?private_token=' + config.gitlabPrivateToken,
+        json: true
+    };
+
+    request.get(
+        options,
+        function(error, response, body) {
+            console.log('result: ', body);
+            console.log('result type: ', typeof body);
+            if (error) {
+                return deferred.reject(error);
+            }
+
+            if (body.message) {
+                return deferred.reject(body.message);
+            }
+
+            if (!Object.keys(body).length) {
+                return deferred.reject(new Error('Empty answer'));
+            }
+
+            deferred.resolve(body.id);
+
+        });
+    return deferred.promise;
 }
 
 module.exports = {

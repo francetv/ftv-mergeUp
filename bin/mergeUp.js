@@ -9,6 +9,6 @@ program
     .version(pkg.version);
 
 
-program.parse(process.argv);
+args = program.parse(process.argv);
 
-automateMerge(2467, 2445, 'dev', 'master', 'test1');
+automateMerge('nnavarro/test-project-dummy', 'team-player/test-project-dummy', 'branch3', 'master', 'test1');

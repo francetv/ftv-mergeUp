@@ -68,8 +68,14 @@ function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstream
         // GITLAB :
         // Get gitlab data
         .then(function() {
-            data.forkProjectId = gitlab.getProjectId(forkProject);
-            data.upstreamProjectId = gitlab.getProjectId(upstreamProject);
+            return gitlab.getProjectId(forkProject);
+        })
+        .then(function(forkId) {
+            data.forkProjectId = forkId;
+            return gitlab.getProjectId(upstreamProject);
+        })
+        .then(function(upstreamId) {
+            data.upstreamProjectId = upstreamId;
         })
         // send merge request gitlab
         .then(function() {
