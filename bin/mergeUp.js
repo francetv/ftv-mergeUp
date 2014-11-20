@@ -6,9 +6,13 @@ var automateMerge = require('../index.js');
 var pkg = require('../package.json');
 
 program
-    .version(pkg.version)
+    .version(pkg.version);
 
 
-program.parse(process.argv);
-
-automateMerge(2447, 2445, 'dev', 'master', 'test1');
+var args = program.parse(process.argv).args;
+if (args.length !== 5) {
+    console.log('Usage : mergeup forkProject upstreamProject forkBranch upstreamBranch Title');
+    return;
+}
+automateMerge.apply(this, args);
+//'nnavarro/test-project-dummy', 'team-player/test-project-dummy', 'branch3', 'master', 'test1'

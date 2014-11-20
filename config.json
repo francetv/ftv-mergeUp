@@ -1,8 +1,7 @@
 {
-    "gitlabUserId": "391",
-    "targetProjectId": "",
-    "hipchatUserToken": "BRMmecYvWTML9hJtB9ftBivkwjN0STnr17xo0iZ0",
-    "hipchatRoomId": "875921",
-    "forkProjectId": 433,
-    "upstreamProjectId": 131
+    "gitlabPrivateToken": "xNXEqSHWcknFYg5rQrtV",
+    "hipchatUserToken": "7YnHaPpDsvcMOMadEEDnFhy1DMK6y80piuEUqZF6",
+    "hipchatRoomId": "674220",
+
+    "projectBaseUrl": "https://gitlab.ftven.net/"
 }
