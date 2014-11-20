@@ -20,12 +20,9 @@ function gitExec() {
 
     args.push(function(error, result) {
         if (error) {
-            // console.log(args[0] + "on " + args[1][0] + ": fail :", error);
             return deferred.reject(error);
         }
         deferred.resolve(result);
-
-        // console.log(args[0] + ": success");
     });
 
     git.exec.apply(git, args);
