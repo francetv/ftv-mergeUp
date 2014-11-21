@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "binary": {
-    "mergeUp": "bin/mergeUp.js"
+  "bin": {
+    "mergeUp": "./bin/mergeUp.js"
   },
   "author": "",
   "license": "ISC",
