@@ -1,110 +1,112 @@
-var Git = require('git-wrapper');
-var git = new Git({});
-var config = require('./config.json');
-var Hipchatter = require('hipchatter');
-var hipchat = new Hipchatter(config.hipchatUserToken);
-var gitlab = require('./gitlab');
-var RSVP = require('rsvp');
+var Hipchatter = require('hipchatter'),
+    RSVP = require('rsvp');
 
-/*
-things to define globally :
-    - gitlab user id
-    - target project id
-    - hipchat user token
-*/
+var git = require('./git'),
+    config = require('./config.json'),
+    hipchat = new Hipchatter(config.hipchatUserToken),
+    gitlab = require('./gitlab');
 
-function gitExec() {
-    var deferred = RSVP.defer();
+module.exports = {
+    automateMergeRequest: function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstreamBranch, title) {
+        var data = {};
 
-    var args = [].slice.call(arguments);
-
-    args.push(function(error, result) {
-        if (error) {
-            return deferred.reject(error);
-        }
-        deferred.resolve(result);
-    });
-
-    git.exec.apply(git, args);
-
-    return deferred.promise;
-}
-
-function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstreamBranch, title) {
-    var data = {};
-
-    RSVP.Promise.resolve()
-
-    // LOCAL COLLECT DATA:
-    .then(function() {
-        data.forkBranch = forkBranch;
-        data.upstreamBranch = upstreamBranch;
-    })
-
-    // LOCAL GIT:
-
-    // fetch
-    .then(function() {
-            return gitExec('fetch', ['upstream']);
-        })
-        // rebase my branch
-        .then(function(result) {
-            return gitExec('rebase', ['upstream/' + data.upstreamBranch])
-                .catch(function(error) {
-                    gitExec('rebase', ['--abort']).then(function() {
-                        var rebaseError = new Error('Rebase failed');
-                        rebaseError.parent = error;
-                        throw rebaseError;
-                    });
+        RSVP.Promise.resolve()
+            // Collect given data
+            .then(function() {
+                data.forkBranch = forkBranch;
+                data.upstreamBranch = upstreamBranch;
+            })
+            // Fetch upstream
+            .then(function() {
+                return git.exec('fetch', ['upstream']).catch(function(error) {
+                    var stepError = new Error('GIT - fetch failed');
+                    stepError.parent = error;
+                    throw stepError;
                 });
-        })
-        // push
-        .then(function(result) {
-            return gitExec('push', ['origin', forkBranch, '-f']);
-        })
-        // GITLAB :
-        // Get gitlab data
-        .then(function() {
-            return gitlab.getProjectId(forkProject);
-        })
-        .then(function(forkId) {
-            data.forkProjectId = forkId;
-            return gitlab.getProjectId(upstreamProject);
-        })
-        .then(function(upstreamId) {
-            data.upstreamProjectId = upstreamId;
-        })
-        // send merge request gitlab
-        .then(function() {
-            var mergeRequestId;
-            return gitlab.createMergeRequest(
-                data.forkProjectId, // jrt's fork of jqp source project id
-                data.upstreamProjectId, // jqp target project id
-                data.forkBranch, // source branch
-                data.upstreamBranch, // target branch
-                title
-            );
-        })
-        // send hipchat message
-        .then(function(mergeRequestId) {
-            var mergeRequestUrl = config.projectBaseUrl + upstreamProject + '/merge_requests/' + mergeRequestId + '/diffs';
+            })
+            // Rebase the working branch
+            .then(function(result) {
+                return git.exec('rebase', ['upstream/' + data.upstreamBranch])
+                    .catch(function(error) {
+                        return git.exec('rebase', ['--abort']).finally(function() {
+                            var stepError = new Error('GIT - rebase failed');
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                    });
+            })
+            // Push the working branch to the origin remote
+            .then(function(result) {
+                return git.exec('push', ['origin', forkBranch, '-f']).catch(function(error) {
+                    var stepError = new Error('GIT - push failed');
+                    stepError.parent = error;
+                    throw stepError;
+                });
+            })
+            // Get gitlab projectID for the fork
+            .then(function() {
+                return gitlab.getProjectId(forkProject).catch(function(error) {
+                    var stepError = new Error('GITLAB - getProjectId(fork) failed');
+                    stepError.parent = error;
+                    throw stepError;
+                });
+            })
+            // Get gitlab projectID for the upstream
+            .then(function(forkId) {
+                data.forkProjectId = forkId;
+                return gitlab.getProjectId(upstreamProject).catch(function(error) {
+                    var stepError = new Error('GITLAB - getProjectId(upstream) failed');
+                    stepError.parent = error;
+                    throw stepError;
+                });
+            })
+            // Store previous promise result (upstream projectID)
+            .then(function(upstreamId) {
+                data.upstreamProjectId = upstreamId;
+            })
+            // Create/Update the merge request on GitLab
+            .then(function() {
+                return gitlab.getMergeRequest(data, title)
+                    .then(function(mergeRequest) {
+                        return gitlab.updateMergeRequest(mergeRequest).catch(function(error) {
+                            var stepError = new Error('GITLAB - update merge request failed');
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                    })
+                    .catch(function(error) {
+                        return gitlab.createMergeRequest(data, title).catch(function(error) {
+                            var stepError = new Error('GITLAB - create merge request failed');
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                    });
+            })
+            // Send hipchat notification
+            .then(function(params) {
+                var mergeRequestIid = params.mergeRequest.iid;
+                var mergeRequestUrl = config.projectBaseUrl + upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
+                var message = '@here ' + ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + title + '</a>';
 
-            hipchat.notify(config.hipchatRoomId, {
-                message: '@here New merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + title + '</a>',
-                color: 'green',
-                token: config.hipchatUserToken
-            }, function(err) {
-                if (err === null) {
-                    console.log('Successfully notified the room for merge request #' + mergeRequestId + '.');
-                } else {
-                    console.log('Error : ', err);
-                }
+                hipchat.notify(config.hipchatRoomId, {
+                    message: message,
+                    color: 'green',
+                    token: config.hipchatNotifyToken,
+                    notify: true
+                }, function(err) {
+                    if (err === null) {
+                        process.stdout.write('Successfully notified the room for merge request #' + mergeRequestIid + '.');
+                    } else {
+                        var stepError = new Error('HIPCHAT - notification failed');
+                        stepError.parent = error;
+                        throw stepError;
+                    }
+                });
+            })
+            // Catch all errors
+            .catch(function(error) {
+                process.stdout.write(error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+                process.exit(1);
             });
-        })
-        .catch(function(error) {
-            console.error(error);
-            process.exit(1);
-        });
-}
-
-module.exports = automateMergeRequest;
+    }
+};
