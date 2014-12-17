@@ -86,8 +86,8 @@ module.exports = {
             // Send hipchat notification
             .then(function(params) {
                 var mergeRequestIid = params.mergeRequest.iid;
-                var mergeRequestUrl = config.projectBaseUrl + upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
-                var message = '@here ' + ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + args.title + '</a>';
+                var mergeRequestUrl = config.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
+                var message = ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + data.upstreamProject + ': <a href="' + mergeRequestUrl + '">' + data.title + '</a>';
 
                 hipchat.notify(config.hipchatRoomId, {
                     message: message,
@@ -96,7 +96,7 @@ module.exports = {
                     notify: true
                 }, function(err) {
                     if (err === null) {
-                        process.stdout.write('Successfully notified the room for merge request #' + mergeRequestIid + '.');
+                        process.stdout.write('Successfully notified the room for merge request #' + mergeRequestIid + '\n');
                     } else {
                         var stepError = new Error('HIPCHAT - notification failed');
                         stepError.parent = error;
