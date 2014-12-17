@@ -55,6 +55,7 @@ module.exports = {
     createMergeRequest: function createMergeRequest(data, title) {
         return RSVP.Promise.resolve()
             .then(function() {
+                var deferred = RSVP.defer();
                 var options = {
                     url: apiPrefix + 'projects/' + data.forkProjectId + '/merge_requests/',
                     body: {
@@ -67,7 +68,7 @@ module.exports = {
                     },
                     json: true
                 };
-                var deferred = RSVP.defer();
+
                 request.post(
                     options,
                     function(error, response, body) {
