@@ -1,10 +1,14 @@
 var Hipchatter = require('hipchatter'),
-    RSVP = require('rsvp');
+    RSVP = require('rsvp'),
+    ProgressBar = require('progress');
 
 var git = require('./git'),
     config = require('./config.json'),
     hipchat = new Hipchatter(config.hipchatUserToken),
-    gitlab = require('./gitlab');
+    gitlab = require('./gitlab'),
+    bar = new ProgressBar(':bar', {
+        total: 80
+    });
 
 module.exports = {
     automateMergeRequest: function automateMergeRequest(data) {
@@ -19,6 +23,7 @@ module.exports = {
             })
             // Fetch upstream
             .then(function() {
+                bar.tick(10);
                 return git.exec('fetch', ['upstream']).catch(function(error) {
                     var stepError = new Error('GIT - fetch failed');
                     stepError.parent = error;
@@ -27,6 +32,7 @@ module.exports = {
             })
             // Rebase the working branch
             .then(function(result) {
+                bar.tick(10);
                 return git.exec('rebase', ['upstream/' + data.upstreamBranch])
                     .catch(function(error) {
                         return git.exec('rebase', ['--abort']).finally(function() {
@@ -38,6 +44,7 @@ module.exports = {
             })
             // Push the working branch to the origin remote
             .then(function(result) {
+                bar.tick(10);
                 return git.exec('push', ['origin', data.forkBranch, '-f']).catch(function(error) {
                     var stepError = new Error('GIT - push failed');
                     stepError.parent = error;
@@ -46,6 +53,7 @@ module.exports = {
             })
             // Get gitlab projectID for the fork
             .then(function() {
+                bar.tick(10);
                 return gitlab.getProjectId(data.forkProject).catch(function(error) {
                     var stepError = new Error('GITLAB - getProjectId(fork) failed');
                     stepError.parent = error;
@@ -54,6 +62,7 @@ module.exports = {
             })
             // Get gitlab projectID for the upstream
             .then(function(forkId) {
+                bar.tick(10);
                 data.forkProjectId = forkId;
                 return gitlab.getProjectId(data.upstreamProject).catch(function(error) {
                     var stepError = new Error('GITLAB - getProjectId(upstream) failed');
@@ -63,10 +72,12 @@ module.exports = {
             })
             // Store previous promise result (upstream projectID)
             .then(function(upstreamId) {
+                bar.tick(10);
                 data.upstreamProjectId = upstreamId;
             })
             // Create/Update the merge request on GitLab
             .then(function() {
+                bar.tick(10);
                 return gitlab.getMergeRequest(data, data.title)
                     .then(function(mergeRequest) {
                         return gitlab.updateMergeRequest(mergeRequest).catch(function(error) {
@@ -85,6 +96,7 @@ module.exports = {
             })
             // Send hipchat notification
             .then(function(params) {
+                bar.tick(10);
                 var mergeRequestIid = params.mergeRequest.iid;
                 var mergeRequestUrl = config.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
                 var message = ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + data.upstreamProject + ': <a href="' + mergeRequestUrl + '">' + data.title + '</a>';
@@ -96,7 +108,7 @@ module.exports = {
                     notify: true
                 }, function(err) {
                     if (err === null) {
-                        process.stdout.write('Successfully notified the room for merge request #' + mergeRequestIid + '\n');
+                        process.stdout.write('\n\nSuccessfully notified the room for merge request #' + mergeRequestIid + '\n');
                     } else {
                         var stepError = new Error('HIPCHAT - notification failed');
                         stepError.parent = error;
@@ -106,7 +118,7 @@ module.exports = {
             })
             // Catch all errors
             .catch(function(error) {
-                process.stdout.write('ERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+                process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
                 process.exit(1);
             });
     }
