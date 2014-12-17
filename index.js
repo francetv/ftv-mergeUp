@@ -7,14 +7,15 @@ var git = require('./git'),
     gitlab = require('./gitlab');
 
 module.exports = {
-    automateMergeRequest: function automateMergeRequest(forkProject, upstreamProject, forkBranch, upstreamBranch, title) {
-        var data = {};
-
+    automateMergeRequest: function automateMergeRequest(data) {
         RSVP.Promise.resolve()
-            // Collect given data
+            // Collect git config
             .then(function() {
-                data.forkBranch = forkBranch;
-                data.upstreamBranch = upstreamBranch;
+                return git.loadConfig(data).catch(function(error) {
+                    var stepError = new Error('GIT - collecting git config');
+                    stepError.parent = error;
+                    throw stepError;
+                });
             })
             // Fetch upstream
             .then(function() {
@@ -37,7 +38,7 @@ module.exports = {
             })
             // Push the working branch to the origin remote
             .then(function(result) {
-                return git.exec('push', ['origin', forkBranch, '-f']).catch(function(error) {
+                return git.exec('push', ['origin', data.forkBranch, '-f']).catch(function(error) {
                     var stepError = new Error('GIT - push failed');
                     stepError.parent = error;
                     throw stepError;
@@ -45,7 +46,7 @@ module.exports = {
             })
             // Get gitlab projectID for the fork
             .then(function() {
-                return gitlab.getProjectId(forkProject).catch(function(error) {
+                return gitlab.getProjectId(data.forkProject).catch(function(error) {
                     var stepError = new Error('GITLAB - getProjectId(fork) failed');
                     stepError.parent = error;
                     throw stepError;
@@ -54,7 +55,7 @@ module.exports = {
             // Get gitlab projectID for the upstream
             .then(function(forkId) {
                 data.forkProjectId = forkId;
-                return gitlab.getProjectId(upstreamProject).catch(function(error) {
+                return gitlab.getProjectId(data.upstreamProject).catch(function(error) {
                     var stepError = new Error('GITLAB - getProjectId(upstream) failed');
                     stepError.parent = error;
                     throw stepError;
@@ -66,7 +67,7 @@ module.exports = {
             })
             // Create/Update the merge request on GitLab
             .then(function() {
-                return gitlab.getMergeRequest(data, title)
+                return gitlab.getMergeRequest(data, data.title)
                     .then(function(mergeRequest) {
                         return gitlab.updateMergeRequest(mergeRequest).catch(function(error) {
                             var stepError = new Error('GITLAB - update merge request failed');
@@ -75,7 +76,7 @@ module.exports = {
                         });
                     })
                     .catch(function(error) {
-                        return gitlab.createMergeRequest(data, title).catch(function(error) {
+                        return gitlab.createMergeRequest(data, data.title).catch(function(error) {
                             var stepError = new Error('GITLAB - create merge request failed');
                             stepError.parent = error;
                             throw stepError;
@@ -86,7 +87,7 @@ module.exports = {
             .then(function(params) {
                 var mergeRequestIid = params.mergeRequest.iid;
                 var mergeRequestUrl = config.projectBaseUrl + upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
-                var message = '@here ' + ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + title + '</a>';
+                var message = '@here ' + ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + upstreamProject + ': <a href="' + mergeRequestUrl + '">' + args.title + '</a>';
 
                 hipchat.notify(config.hipchatRoomId, {
                     message: message,
@@ -105,7 +106,7 @@ module.exports = {
             })
             // Catch all errors
             .catch(function(error) {
-                process.stdout.write(error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+                process.stdout.write('ERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
                 process.exit(1);
             });
     }

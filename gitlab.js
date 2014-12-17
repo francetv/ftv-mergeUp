@@ -1,12 +1,12 @@
 var request = require('request'),
-    rsvp = require('rsvp'),
+    RSVP = require('rsvp'),
     config = require('./config.json');
 
 var apiPrefix = 'https://gitlab.ftven.net/api/v3/';
 
 module.exports = {
     getMergeRequest: function createMergeRequest(data, title) {
-        return rsvp.Promise.resolve()
+        return RSVP.Promise.resolve()
             .then(function() {
                 var options = {
                     url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_requests/',
@@ -16,7 +16,7 @@ module.exports = {
                     },
                     json: true
                 };
-                var deferred = rsvp.defer();
+                var deferred = RSVP.defer();
                 request.get(
                     options,
                     function(error, response, body) {
@@ -53,7 +53,7 @@ module.exports = {
             });
     },
     createMergeRequest: function createMergeRequest(data, title) {
-        return rsvp.Promise.resolve()
+        return RSVP.Promise.resolve()
             .then(function() {
                 var options = {
                     url: apiPrefix + 'projects/' + data.forkProjectId + '/merge_requests/',
@@ -67,7 +67,7 @@ module.exports = {
                     },
                     json: true
                 };
-                var deferred = rsvp.defer();
+                var deferred = RSVP.defer();
                 request.post(
                     options,
                     function(error, response, body) {
@@ -93,13 +93,13 @@ module.exports = {
             });
     },
     updateMergeRequest: function updateMergeRequest(mergeRequest, data, title) {
-        return rsvp.Promise.resolve({
+        return RSVP.Promise.resolve({
             mergeRequest: mergeRequest,
             isNew: false
         });
     },
     getProjectId: function getProjectId(projectName) {
-        var deferred = rsvp.defer();
+        var deferred = RSVP.defer();
         var encodedProjectPath = encodeURIComponent(projectName);
 
         var options = {

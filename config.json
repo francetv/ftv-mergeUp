@@ -1,4 +1,5 @@
 {
+    "gitDefaultUpstreamBranch": "dev",
     "gitlabPrivateToken": "xNXEqSHWcknFYg5rQrtV",
     "hipchatUserToken": "7YnHaPpDsvcMOMadEEDnFhy1DMK6y80piuEUqZF6",
     "hipchatRoomId": "674220",
