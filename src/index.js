@@ -115,6 +115,10 @@ module.exports = {
             .then(function(params) {
                 bar.tick(10);
 
+                if (data.silentMode) {
+                    return;
+                }
+
                 var hipchat = new Hipchatter(config.conf.hipchatUserToken);
                 var mergeRequestIid = params.mergeRequest.iid;
                 var mergeRequestUrl = config.conf.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';

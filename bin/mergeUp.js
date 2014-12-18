@@ -14,6 +14,7 @@ program
     .option('-P, --upstreamProject <projectName>', 'upstream project name (ex: team/project)')
     .option('-b, --forkBranch <branch>', 'fork branch name (ex: bugfix)')
     .option('-B, --upstreamBranch <branch>', 'upstream branch name (ex: dev)')
+    .option('-s, --silent', 'desactivate hipChat notification')
     .parse(process.argv);
 
 if (!program.title) {
@@ -26,5 +27,6 @@ mergeUp.automateMergeRequest({
     upstreamProject: program.upstreamProject,
     forkBranch: program.forkBranch,
     upstreamBranch: program.upstreamBranch,
-    title: program.title
+    title: program.title,
+    silentMode: program.silent
 });
