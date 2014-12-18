@@ -13,6 +13,15 @@ If the prompt ask for ssh authorization just type yes.
 
 How to use
 ----------------------------------------
-1. Modify the **gitlabPrivateToken** in the **config.json** file.
-In order to get your private token go your gitlab profile page (<a href="http://gitlab.ftven.net/profile/account" target="_blank">click here</a>)
-2. Run ```./node_modules/.bin/mergeUp``` and let's roll ...
+1. Create a mergeUpConfig.json file on the root of your project with the following content :
+```
+{
+    "gitDefaultUpstreamBranch": ""
+    "gitlabPrivateToken": ""
+}
+```
+
+2. Set the following values :
+    * You can find your **gitlabPrivateToken** on the account tab of your profile page on GitLab.
+    * The **gitDefaultUpstreamBranch** is often ``dev``but we can't force it for every project as the default value
+3. Run ``./node_modules/.bin/mergeUp`` and let's roll ...

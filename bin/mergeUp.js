@@ -1,18 +1,27 @@
 #!/usr/bin/env node
 
 var program = require('commander');
-var automateMerge = require('../index.js');
 
-var pkg = require('../package.json');
+var mergeUp = require('../src/index.js'),
+    pkg = require('../package.json');
 
 program
-    .version(pkg.version);
+    .version(pkg.version)
+    .usage('[options]')
+    .description('Automatic merging tool')
+    .option('-t, --title <title>', 'merge request title (ex: \'Bug fixes\')')
+    .option('-p, --forkProject <projectName>', 'fork project name (ex: username/project)')
+    .option('-P, --upstreamProject <projectName>', 'upstream project name (ex: team/project)')
+    .option('-b, --forkBranch <branch>', 'fork branch name (ex: bugfix)')
+    .option('-B, --upstreamBranch <branch>', 'upstream branch name (ex: dev)')
+    .option('-s, --silent', 'desactivate hipChat notification')
+    .parse(process.argv);
 
-
-var args = program.parse(process.argv).args;
-if (args.length !== 5) {
-    console.log('Usage : mergeup forkProject upstreamProject forkBranch upstreamBranch Title');
-    return;
-}
-automateMerge.apply(this, args);
-//'nnavarro/test-project-dummy', 'team-player/test-project-dummy', 'branch3', 'master', 'test1'
+mergeUp.automateMergeRequest({
+    forkProject: program.forkProject,
+    upstreamProject: program.upstreamProject,
+    forkBranch: program.forkBranch,
+    upstreamBranch: program.upstreamBranch,
+    title: program.title,
+    silentMode: program.silent
+});
