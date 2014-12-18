@@ -93,19 +93,20 @@ module.exports = {
             // Create/Update the merge request on GitLab
             .then(function() {
                 bar.tick(10);
-                return gitlab.getMergeRequest(data, data.title)
+                return gitlab.getMergeRequest(data)
                     .then(function(mergeRequest) {
-                        return gitlab.updateMergeRequest(mergeRequest)
+                        if (!mergeRequest) {
+                            return gitlab.createMergeRequest(data)
+                                .catch(function(error) {
+                                    var stepError = new Error('GITLAB - create merge request failed');
+                                    stepError.parent = error;
+                                    throw stepError;
+                                });
+                        }
+
+                        return gitlab.updateMergeRequest(mergeRequest, data)
                             .catch(function(error) {
                                 var stepError = new Error('GITLAB - update merge request failed');
-                                stepError.parent = error;
-                                throw stepError;
-                            });
-                    })
-                    .catch(function(error) {
-                        return gitlab.createMergeRequest(data, data.title)
-                            .catch(function(error) {
-                                var stepError = new Error('GITLAB - create merge request failed');
                                 stepError.parent = error;
                                 throw stepError;
                             });

@@ -17,11 +17,6 @@ program
     .option('-s, --silent', 'desactivate hipChat notification')
     .parse(process.argv);
 
-if (!program.title) {
-    process.stderr.write('Error, some mandatories params are missing\n\n-t --title option is required\n');
-    program.help();
-}
-
 mergeUp.automateMergeRequest({
     forkProject: program.forkProject,
     upstreamProject: program.upstreamProject,

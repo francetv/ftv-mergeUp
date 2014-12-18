@@ -5,9 +5,10 @@ var request = require('request'),
 var apiPrefix = 'https://gitlab.ftven.net/api/v3/';
 
 module.exports = {
-    getMergeRequest: function createMergeRequest(data, title) {
+    getMergeRequest: function createMergeRequest(data) {
         return RSVP.Promise.resolve()
             .then(function() {
+                var deferred = RSVP.defer();
                 var options = {
                     url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_requests/',
                     qs: {
@@ -16,7 +17,7 @@ module.exports = {
                     },
                     json: true
                 };
-                var deferred = RSVP.defer();
+
                 request.get(
                     options,
                     function(error, response, body) {
@@ -26,14 +27,11 @@ module.exports = {
                         if (body.message) {
                             return deferred.reject(body.message);
                         }
-                        if (!Object.keys(body).length) {
-                            return deferred.reject(new Error('Empty answer'));
-                        }
 
                         var mergeRequest;
                         body.some(function(MR) {
-                            if (MR.title === title && MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch ===
-                                data.forkBranch && MR.target_branch === data.upstreamBranch) {
+                            if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
+                                MR.target_branch === data.upstreamBranch) {
                                 mergeRequest = MR;
                                 return true;
                             }
@@ -41,18 +39,14 @@ module.exports = {
                             return false;
                         });
 
-                        if (mergeRequest) {
-                            return deferred.resolve(mergeRequest);
-                        }
-
-                        deferred.reject('No matching MR found');
+                        return deferred.resolve(mergeRequest);
                     }
                 );
 
                 return deferred.promise;
             });
     },
-    createMergeRequest: function createMergeRequest(data, title) {
+    createMergeRequest: function createMergeRequest(data) {
         return RSVP.Promise.resolve()
             .then(function() {
                 var deferred = RSVP.defer();
@@ -63,40 +57,72 @@ module.exports = {
                         target_project_id: data.upstreamProjectId,
                         source_branch: data.forkBranch,
                         target_branch: data.upstreamBranch,
-                        title: title,
+                        title: data.title,
                         private_token: config.gitlabPrivateToken
                     },
                     json: true
                 };
 
-                request.post(
-                    options,
-                    function(error, response, body) {
-                        if (error) {
-                            return deferred.reject(error);
-                        }
-                        if (body.message) {
-                            return deferred.reject(body.message);
-                        }
+                if (!data.title) {
+                    deferred.reject(new Error('Title can\'t be empty for a new MR'));
+                } else {
+                    request.post(
+                        options,
+                        function(error, response, body) {
+                            if (error) {
+                                return deferred.reject(error);
+                            }
+                            if (body.message) {
+                                return deferred.reject(body.message);
+                            }
+                            if (!Object.keys(body).length) {
+                                return deferred.reject(new Error('Empty answer'));
+                            }
 
-                        if (!Object.keys(body).length) {
-                            return deferred.reject(new Error('Empty answer'));
+                            deferred.resolve({
+                                mergeRequest: body,
+                                isNew: true
+                            });
                         }
-
-                        deferred.resolve({
-                            mergeRequest: body,
-                            isNew: true
-                        });
-                    }
-                );
+                    );
+                }
 
                 return deferred.promise;
             });
     },
-    updateMergeRequest: function updateMergeRequest(mergeRequest, data, title) {
-        return RSVP.Promise.resolve({
-            mergeRequest: mergeRequest,
-            isNew: false
+    updateMergeRequest: function updateMergeRequest(mergeRequest, data) {
+        return RSVP.Promise.resolve().then(function() {
+            var deferred = RSVP.defer();
+            var options = {
+                url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id,
+                body: {
+                    title: data.title,
+                    private_token: config.gitlabPrivateToken
+                },
+                json: true
+            };
+
+            request.put(
+                options,
+                function(error, response, body) {
+                    if (error) {
+                        return deferred.reject(error);
+                    }
+                    if (body.message) {
+                        return deferred.reject(body.message);
+                    }
+                    if (!Object.keys(body).length) {
+                        return deferred.reject(new Error('Empty answer'));
+                    }
+
+                    deferred.resolve({
+                        mergeRequest: body,
+                        isNew: false
+                    });
+                }
+            );
+
+            return deferred.promise;
         });
     },
     getProjectId: function getProjectId(projectName) {
