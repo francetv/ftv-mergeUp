@@ -1,6 +1,6 @@
 var request = require('request'),
     RSVP = require('rsvp'),
-    config = require('./config.json');
+    config = require('./config').conf;
 
 var apiPrefix = 'https://gitlab.ftven.net/api/v3/';
 

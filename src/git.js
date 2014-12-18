@@ -4,7 +4,7 @@ var GitWrapper = require('git-wrapper'),
     ini = require('ini');
 
 var gitWrapper = new GitWrapper(),
-    config = require('./config.json');
+    config = require('./config').conf;
 
 module.exports = {
     exec: function exec() {

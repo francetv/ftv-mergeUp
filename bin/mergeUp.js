@@ -2,7 +2,7 @@
 
 var program = require('commander');
 
-var mergeUp = require('../index.js'),
+var mergeUp = require('../src/index.js'),
     pkg = require('../package.json');
 
 program
