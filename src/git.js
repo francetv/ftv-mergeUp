@@ -23,9 +23,10 @@ module.exports = {
         return deferred.promise;
     },
     loadConfig: function loadConfig(data) {
-        return this.loadProjectConfig(data).then(function() {
-            return this.loadBranchConfig(data);
-        }.bind(this));
+        return this.loadProjectConfig(data)
+            .then(function() {
+                return this.loadBranchConfig(data);
+            }.bind(this));
     },
     loadProjectConfig: function loadProjectConfig(data) {
         var deferred = RSVP.defer();
@@ -87,6 +88,8 @@ module.exports = {
 
                 data.upstreamBranch = config.gitDefaultUpstreamBranch;
                 deferred.resolve();
+
+                return deferred.promise;
             })
             .then(function() {
                 var deferred = RSVP.defer();
@@ -103,6 +106,8 @@ module.exports = {
                     .catch(function(error) {
                         deferred.reject(new Error('Failed to get the current branch'));
                     });
+
+                return deferred.promise;
             }.bind(this));
     }
 };

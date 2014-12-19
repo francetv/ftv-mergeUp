@@ -16,7 +16,7 @@ How to use
 1. Create a mergeUpConfig.json file on the root of your project with the following content :
 ```
 {
-    "gitDefaultUpstreamBranch": ""
+    "gitDefaultUpstreamBranch": "",
     "gitlabPrivateToken": ""
 }
 ```
