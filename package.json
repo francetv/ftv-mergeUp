@@ -1,6 +1,6 @@
 {
   "name": "mergeup",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automates creating a merge request and notifying teammates",
   "main": "index.js",
   "scripts": {
