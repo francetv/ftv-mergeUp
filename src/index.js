@@ -1,12 +1,13 @@
 var Hipchatter = require('hipchatter'),
     RSVP = require('rsvp'),
-    ProgressBar = require('progress');
+    ProgressBar = require('progress'),
+    inquirer = require("inquirer");
 
 var git = require('./git'),
     config = require('./config'),
     gitlab = require('./gitlab'),
     bar = new ProgressBar(':bar', {
-        total: 100
+        total: 110
     });
 
 module.exports = {
@@ -31,6 +32,36 @@ module.exports = {
                         stepError.parent = error;
                         throw stepError;
                     });
+            })
+            // Check for branch equality
+            .then(function() {
+                bar.tick(10);
+                if (data.forkBranch === data.upstreamBranch) {
+                    return RSVP.Promise.resolve()
+                        .then(function() {
+                            var deferred = RSVP.defer();
+
+                            inquirer.prompt([{
+                                type: 'confirm',
+                                name: 'sameBranchConfirm',
+                                message: '\nWARNING - merge request on the same origin/upstream branch name?',
+                                default: false
+                            }], function(answers) {
+                                if (!answers.sameBranchConfirm) {
+                                    return deferred.reject(new Error('no merge on the same origin/upstream branch name'));
+                                }
+
+                                deferred.resolve();
+                            });
+
+                            return deferred.promise;
+                        })
+                        .catch(function(error) {
+                            var stepError = new Error('PROCESS');
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                }
             })
             // Fetch upstream
             .then(function() {
