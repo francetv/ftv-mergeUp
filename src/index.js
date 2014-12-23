@@ -1,13 +1,14 @@
 var Hipchatter = require('hipchatter'),
     RSVP = require('rsvp'),
     ProgressBar = require('progress'),
-    inquirer = require("inquirer");
+    inquirer = require("inquirer"),
+    exec = require('child_process').exec;
 
 var git = require('./git'),
     config = require('./config'),
     gitlab = require('./gitlab'),
     bar = new ProgressBar(':bar', {
-        total: 110
+        total: 120
     });
 
 module.exports = {
@@ -32,6 +33,21 @@ module.exports = {
                         stepError.parent = error;
                         throw stepError;
                     });
+            })
+            // Launch test
+            .then(function() {
+                bar.tick(10);
+                var deferred = RSVP.defer();
+
+                exec('npm test', function(error, stdout, stderr) {
+                    if (error !== null) {
+                        deferred.reject(new Error('NPM - error occured during tests launch (failed test, no tests etc.)'));
+                    }
+
+                    deferred.resolve();
+                });
+
+                return deferred.promise;
             })
             // Check for branch equality
             .then(function() {
