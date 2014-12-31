@@ -16,7 +16,7 @@ module.exports = {
 
         fs.exists(customConfigPath, function(exists) {
             if (!exists) {
-                return deferred.reject(new Error('Can\'t find the mergeUpConf.json file'));
+                return deferred.reject(new Error('Can\'t find the mergeUpConf.json file, please run mergeUp init first'));
             }
 
             this.conf = extend(this.conf, require(customConfigPath));
