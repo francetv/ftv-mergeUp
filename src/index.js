@@ -8,12 +8,25 @@ var git = require('./git'),
     config = require('./config'),
     gitlab = require('./gitlab'),
     bar = new ProgressBar(':bar', {
-        total: 120
+        total: 130
     });
 
 module.exports = {
     automateMergeRequest: function automateMergeRequest(data) {
         RSVP.Promise.resolve()
+            // Check for unstaged or changed files
+            .then(function() {
+                bar.tick(10);
+
+                return git.exec('diff', ['--exit-code'])
+                    .then(function() {
+                        return git.exec('diff', ['--cached', '--exit-code']);
+                    })
+                    .catch(function(error) {
+                        var stepError = new Error('GIT - Please, commit your changes or stash them first');
+                        throw stepError;
+                    });
+            })
             // Collect process config
             .then(function() {
                 bar.tick(10);
