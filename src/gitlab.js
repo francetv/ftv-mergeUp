@@ -32,6 +32,7 @@ module.exports = {
                         body.some(function(MR) {
                             if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
                                 MR.target_branch === data.upstreamBranch) {
+                                data.title = data.title || MR.title;
                                 mergeRequest = MR;
                                 return true;
                             }
@@ -150,6 +151,34 @@ module.exports = {
                 }
 
                 deferred.resolve(body.id);
+
+            });
+        return deferred.promise;
+    },
+    whoAmI: function whoAmI() {
+        var deferred = RSVP.defer();
+
+        var options = {
+            url: apiPrefix + 'user?private_token=' + config.gitlabPrivateToken,
+            json: true
+        };
+
+        request.get(
+            options,
+            function(error, response, body) {
+                if (error) {
+                    return deferred.reject(error);
+                }
+
+                if (body.message) {
+                    return deferred.reject(body.message);
+                }
+
+                if (!Object.keys(body).length) {
+                    return deferred.reject(new Error('Empty answer'));
+                }
+
+                deferred.resolve(body);
 
             });
         return deferred.promise;

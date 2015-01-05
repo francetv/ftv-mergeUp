@@ -8,12 +8,25 @@ var git = require('./git'),
     config = require('./config'),
     gitlab = require('./gitlab'),
     bar = new ProgressBar(':bar', {
-        total: 120
+        total: 130
     });
 
 module.exports = {
     automateMergeRequest: function automateMergeRequest(data) {
         RSVP.Promise.resolve()
+            // Check for unstaged or changed files
+            .then(function() {
+                bar.tick(10);
+
+                return git.exec('diff', ['--exit-code'])
+                    .then(function() {
+                        return git.exec('diff', ['--cached', '--exit-code']);
+                    })
+                    .catch(function(error) {
+                        var stepError = new Error('GIT - Please, commit your changes or stash them first');
+                        throw stepError;
+                    });
+            })
             // Collect process config
             .then(function() {
                 bar.tick(10);
@@ -167,25 +180,34 @@ module.exports = {
                     return;
                 }
 
-                var hipchat = new Hipchatter(config.conf.hipchatUserToken);
-                var mergeRequestIid = params.mergeRequest.iid;
-                var mergeRequestUrl = config.conf.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
-                var message = ((params.isNew) ? 'New' : 'Updated') + ' merge request on ' + data.upstreamProject + ': <a href="' + mergeRequestUrl + '">' + data.title + '</a>';
+                gitlab.whoAmI()
+                    .then(function(me) {
+                        var hipchat = new Hipchatter(config.conf.hipchatUserToken);
+                        var mergeRequestIid = params.mergeRequest.iid;
+                        var mergeRequestUrl = config.conf.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
+                        var message = ((params.isNew) ? 'New' : 'Updated') + ' merge request by <i>' + me.name + '</i> on <b>' + data.upstreamProject + '</b> : <a href="' +
+                            mergeRequestUrl + '">' + data.title + '</a>';
 
-                hipchat.notify(config.conf.hipchatRoomId, {
-                    message: message,
-                    color: 'green',
-                    token: config.conf.hipchatNotifyToken,
-                    notify: true
-                }, function(err) {
-                    if (err === null) {
-                        process.stdout.write('\n\nSuccessfully notified the room for merge request #' + mergeRequestIid + '\n');
-                    } else {
-                        var stepError = new Error('HIPCHAT - notification failed');
+                        hipchat.notify(config.conf.hipchatRoomId, {
+                            message: message,
+                            color: 'green',
+                            token: config.conf.hipchatNotifyToken,
+                            notify: true
+                        }, function(err) {
+                            if (err === null) {
+                                process.stdout.write('\n\nSuccessfully notified the room for merge request #' + mergeRequestIid + '\n');
+                            } else {
+                                var stepError = new Error('HIPCHAT - notification failed');
+                                stepError.parent = error;
+                                throw stepError;
+                            }
+                        });
+                    })
+                    .catch(function() {
+                        var stepError = new Error('GITLAB - can\'retrieve your user informations');
                         stepError.parent = error;
                         throw stepError;
-                    }
-                });
+                    });
             })
             // Catch all errors
             .catch(function(error) {
