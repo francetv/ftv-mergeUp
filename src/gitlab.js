@@ -32,6 +32,7 @@ module.exports = {
                         body.some(function(MR) {
                             if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
                                 MR.target_branch === data.upstreamBranch) {
+                                data.title = data.title || MR.title;
                                 mergeRequest = MR;
                                 return true;
                             }
