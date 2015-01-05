@@ -53,7 +53,7 @@ module.exports = {
                 return deferred.reject(new Error('Failed to find origin or upstream remote in project git config'));
             }
 
-            var projectNamePattern = /[\w@.]+:([\w\/-]+)\.git/i;
+            var projectNamePattern = /[\w@.]+:(.+)\.git/i;
             var originMatch = origin.url.match(projectNamePattern);
             var upstreamMatch = upstream.url.match(projectNamePattern);
 
