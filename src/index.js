@@ -191,7 +191,7 @@ module.exports = {
                         hipchat.notify(config.conf.hipchatRoomId, {
                             message: message,
                             color: 'green',
-                            token: config.conf.hipchatNotifyToken,
+                            token: config.conf.hipchatUserToken,
                             notify: true
                         }, function(err) {
                             if (err === null) {
