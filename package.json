@@ -22,6 +22,8 @@
     "rsvp": "^3.0.14"
   },
   "devDependencies": {
+    "ftv-prerelease": "*",
+    "ftv-release": "*",
     "chai": "^1.10.0",
     "mocha": "^2.0.1"
   }
