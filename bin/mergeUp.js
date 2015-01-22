@@ -4,6 +4,7 @@ var program = require('commander');
 
 var mergeUp = require('../src/index.js'),
     init = require('../src/init.js').init,
+    init = require('../src/init.js').init,
     pkg = require('../package.json');
 
 program
@@ -25,6 +26,28 @@ program
     .description('initialize mergeUpConf.json file')
     .action(function() {
         init();
+    });
+
+program
+    .command('verify')
+    .usage('<mergeID>')
+    .description('prepare an env to verify a merge request')
+    .option('--validate', 'accept the merge request')
+    .option('--refuse <message>', 'add a refuse comment ont GitLab')
+    .option('--clean', 'remove all env created by this command')
+    .action(function(cmd, options) {
+        if (isNaN(program.args[0])) {
+            process.stdout.write('\nThe mergeID is mandatory\n');
+            return;
+        }
+
+        var args = {
+            mergeId: program.args[0],
+            action: options.validate ? 'validate' : options.refuse ? 'refuse' : options.clean ? 'clean' : '',
+            refuseMessage: options.refuse
+        };
+
+        //TODO
     });
 
 program.parse(process.argv);
