@@ -5,7 +5,7 @@ var gitlab = require('./gitlab'),
     config = require('./config');
 
 module.exports = {
-    init: function(args) {
+    launch: function(args) {
         this.mergeId = args.mergeId;
         this.refuseMessage = args.refuseMessage;
 
@@ -115,6 +115,8 @@ module.exports = {
                             // Remove the temporary repository
                             .finally(function() {
                                 git.exec('remote', ['remove', 'mergeUp']);
+
+                                process.stdout.write('\n\nVerification env created successfully\n');
                                 process.exit(1);
                             });
                     });
@@ -127,10 +129,51 @@ module.exports = {
     validate: function() {
         console.log('validate');
     },
-    refuse: function(args) {
+    refuse: function() {
         console.log('refuse');
     },
-    clean: function(args) {
-        console.log('clean');
+    clean: function() {
+        RSVP.Promise.resolve()
+            .then(function() {
+                return git.exec('ls-remote', ['--exit-code', 'mergeUp'])
+                    .then(function() {
+                        return git.exec('remote', ['remove', 'mergeUp'])
+                            .catch(function(error) {
+                                var stepError = new Error('GIT - failed to remove mergeUp remote');
+                                stepError.parent = error;
+                                throw stepError;
+                            });
+                    })
+                    .catch(function() {
+                        // return cause not having the mergeUp remote isn't an error
+                        return;
+                    });
+            })
+            // Remove branch(es)
+            .then(function() {
+                if (this.mergeId) {
+                    return git.exec('branch', ['-D', 'mergeUp-' + this.mergeId])
+                        .catch(function(error) {
+                            var stepError = new Error('GIT - failed to delete branch mergeUp-' + this.mergeId);
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                } else {
+                    return git.exec('branch | grep \'mergeUp-[0-9]*\' | xargs git branch -D')
+                        .catch(function(error) {
+                            var stepError = new Error('GIT - failed to delete all mergeUp branches');
+                            stepError.parent = error;
+                            throw stepError;
+                        });
+                }
+            }.bind(this))
+            // Catch all errors
+            .catch(function(error) {
+                process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+            })
+            .finally(function() {
+                process.stdout.write('\n\nClean successful\n');
+                process.exit(1);
+            });
     }
 };

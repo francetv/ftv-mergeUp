@@ -30,21 +30,24 @@ program
 
 program
     .command('verify')
-    .usage('<mergeID>')
+    .usage('[mergeID]')
     .description('prepare an env to verify a merge request')
     .option('--validate', 'accept the merge request')
     .option('--refuse <message>', 'add a refuse comment ont GitLab')
     .option('--clean', 'remove all env created by this command')
     .action(function(cmd, options) {
-        if (isNaN(program.args[0])) {
+        var infos = options || cmd;
+        var mergeId = !isNaN(program.args[0]) ? program.args[0] : undefined;
+
+        if (!mergeId && !infos.clean) {
             process.stdout.write('\nThe mergeID is mandatory\n');
             return;
         }
 
-        verify.init({
-            mergeId: program.args[0],
-            action: options.validate ? 'validate' : options.refuse ? 'refuse' : options.clean ? 'clean' : '',
-            refuseMessage: options.refuse
+        verify.launch({
+            mergeId: mergeId,
+            action: infos.validate ? 'validate' : infos.refuse ? 'refuse' : infos.clean ? 'clean' : '',
+            refuseMessage: infos.refuse
         });
     });
 
