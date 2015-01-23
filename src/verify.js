@@ -20,11 +20,11 @@ module.exports = {
                 this.clean();
                 break;
             default:
-                this.verify();
+                this.create();
                 break;
         }
     },
-    verify: function() {
+    create: function() {
         var mergeRequestData = {};
         var data = {
             id: this.mergeId
@@ -42,74 +42,87 @@ module.exports = {
                         throw stepError;
                     });
             })
-            // Collect process config
+            // Check if branch already exist and if so checkout on it
             .then(function() {
-                return config.init()
-                    .catch(function(error) {
-                        var stepError = new Error('CONFIG - collecting process config');
-                        stepError.parent = error;
-                        throw stepError;
-                    });
-            })
-            // Collect git config
-            .then(function() {
-                return git.loadConfig(data)
-                    .catch(function(error) {
-                        var stepError = new Error('GIT - collecting git config');
-                        stepError.parent = error;
-                        throw stepError;
-                    });
-            })
-            // Get gitlab projectID for the upstream
-            .then(function() {
-                return gitlab.getProjectId(data.upstreamProject)
-                    .catch(function(error) {
-                        var stepError = new Error('GITLAB - getProjectId(upstream) failed');
-                        stepError.parent = error;
-                        throw stepError;
-                    });
-            })
-            // Store previous promise result (upstream projectID)
-            .then(function(upstreamId) {
-                data.upstreamProjectId = upstreamId;
-            })
-            // Fetch merge request data
-            .then(function() {
-                return gitlab.getMergeRequest(data)
-                    .catch(function(error) {
-                        var stepError = new Error('GITLAB - merge request not found for this project');
-                        stepError.parent = error;
-                        throw stepError;
-                    });
-            })
-            // Create a temporary repository based on the fork
-            .then(function(MR) {
-                mergeRequestData = MR;
-                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + data.forkProject + '.git']);
-            })
-            // Fetch the mergeUp repository
-            .then(function() {
-                return git.exec('fetch', ['mergeUp']);
-            })
-            // Create the local branch
-            .then(function() {
-                return git.exec('checkout', ['-b', 'mergeUp-' + mergeRequestData.iid, 'mergeUp/' + mergeRequestData.source_branch])
-                    .catch(function(error) {
-                        var stepError = new Error('GIT - local branch creation failed');
-                        stepError.parent = error;
-                        throw stepError;
+                return git.exec('show-branch', ['mergeUp-' + data.id])
+                    .then(function() {
+                        git.exec('checkout', ['mergeUp-' + data.id]);
+                    })
+                    .catch(function() {
+                        RSVP.Promise.resolve()
+                            // Collect process config
+                            .then(function() {
+                                return config.init()
+                                    .catch(function(error) {
+                                        var stepError = new Error('CONFIG - collecting process config');
+                                        stepError.parent = error;
+                                        throw stepError;
+                                    });
+                            })
+                            // Collect git config
+                            .then(function() {
+                                return git.loadConfig(data)
+                                    .catch(function(error) {
+                                        var stepError = new Error('GIT - collecting git config');
+                                        stepError.parent = error;
+                                        throw stepError;
+                                    });
+                            })
+                            // Get gitlab projectID for the upstream
+                            .then(function() {
+                                return gitlab.getProjectId(data.upstreamProject)
+                                    .catch(function(error) {
+                                        var stepError = new Error('GITLAB - getProjectId(upstream) failed');
+                                        stepError.parent = error;
+                                        throw stepError;
+                                    });
+                            })
+                            // Store previous promise result (upstream projectID)
+                            .then(function(upstreamId) {
+                                data.upstreamProjectId = upstreamId;
+                            })
+                            // Fetch merge request data
+                            .then(function() {
+                                return gitlab.getMergeRequest(data)
+                                    .catch(function(error) {
+                                        var stepError = new Error('GITLAB - merge request not found for this project');
+                                        stepError.parent = error;
+                                        throw stepError;
+                                    });
+                            })
+                            // Create a temporary repository based on the fork
+                            .then(function(MR) {
+                                mergeRequestData = MR;
+                                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + data.forkProject + '.git']);
+                            })
+                            // Fetch the mergeUp repository
+                            .then(function() {
+                                return git.exec('fetch', ['mergeUp']);
+                            })
+                            // Create the local branch
+                            .then(function() {
+                                return git.exec('checkout', ['-b', 'mergeUp-' + mergeRequestData.iid, 'mergeUp/' + mergeRequestData.source_branch])
+                                    .catch(function(error) {
+                                        var stepError = new Error('GIT - local branch creation failed');
+                                        stepError.parent = error;
+                                        throw stepError;
+                                    });
+                            })
+                            // Catch all errors
+                            .catch(function(error) {
+                                process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+                            })
+                            // Remove the temporary repository
+                            .finally(function() {
+                                git.exec('remote', ['remove', 'mergeUp']);
+                                process.exit(1);
+                            });
                     });
             })
             // Catch all errors
             .catch(function(error) {
                 process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
-            })
-            // Remove the temporary repository
-            .finally(function() {
-                git.exec('remote', ['remove', 'mergeUp']);
-                process.exit(1);
             });
-
     },
     validate: function() {
         console.log('validate');

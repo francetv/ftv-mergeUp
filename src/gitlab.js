@@ -45,6 +45,10 @@ module.exports = {
                             return false;
                         });
 
+                        if (data.id && !mergeRequest) {
+                            return deferred.reject(new Error('id ' + data.id + ' not found'));
+                        }
+
                         return deferred.resolve(mergeRequest);
                     }
                 );
