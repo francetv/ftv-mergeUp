@@ -30,6 +30,11 @@ module.exports = {
 
                         var mergeRequest;
                         body.some(function(MR) {
+                            if (MR.iid == data.id) {
+                                mergeRequest = MR;
+                                return true;
+                            }
+
                             if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
                                 MR.target_branch === data.upstreamBranch) {
                                 data.title = data.title || MR.title;

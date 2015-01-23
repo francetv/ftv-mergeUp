@@ -4,7 +4,7 @@ var program = require('commander');
 
 var mergeUp = require('../src/index.js'),
     init = require('../src/init.js').init,
-    init = require('../src/init.js').init,
+    verify = require('../src/verify.js'),
     pkg = require('../package.json');
 
 program
@@ -41,13 +41,11 @@ program
             return;
         }
 
-        var args = {
+        verify.init({
             mergeId: program.args[0],
             action: options.validate ? 'validate' : options.refuse ? 'refuse' : options.clean ? 'clean' : '',
             refuseMessage: options.refuse
-        };
-
-        //TODO
+        });
     });
 
 program.parse(process.argv);
