@@ -154,8 +154,8 @@ module.exports = {
             .then(function() {
                 bar.tick(10);
                 return gitlab.getMergeRequest(data)
-                    .then(function(mergeRequest) {
-                        if (!mergeRequest) {
+                    .then(function() {
+                        if (!data.mergeRequest) {
                             return gitlab.createMergeRequest(data)
                                 .catch(function(error) {
                                     var stepError = new Error('GITLAB - create merge request failed');
@@ -164,7 +164,7 @@ module.exports = {
                                 });
                         }
 
-                        return gitlab.updateMergeRequest(mergeRequest, data)
+                        return gitlab.updateMergeRequest(data.mergeRequest, data)
                             .catch(function(error) {
                                 var stepError = new Error('GITLAB - update merge request failed');
                                 stepError.parent = error;
@@ -180,8 +180,15 @@ module.exports = {
                     return;
                 }
 
-                gitlab.whoAmI()
+                return gitlab.whoAmI()
+                    .catch(function() {
+                        var stepError = new Error('GITLAB - can\'t retrieve your user informations');
+                        stepError.parent = error;
+                        throw stepError;
+                    })
                     .then(function(me) {
+                        var deferred = RSVP.defer();
+
                         var hipchat = new Hipchatter(config.conf.hipchatUserToken);
                         var mergeRequestIid = params.mergeRequest.iid;
                         var mergeRequestUrl = config.conf.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
@@ -196,22 +203,22 @@ module.exports = {
                         }, function(err) {
                             if (err === null) {
                                 process.stdout.write('\n\nSuccessfully notified the room for merge request #' + mergeRequestIid + '\n');
+                                deferred.resolve();
                             } else {
                                 var stepError = new Error('HIPCHAT - notification failed');
                                 stepError.parent = error;
-                                throw stepError;
+                                deferred.reject(stepError);
                             }
                         });
-                    })
-                    .catch(function() {
-                        var stepError = new Error('GITLAB - can\'retrieve your user informations');
-                        stepError.parent = error;
-                        throw stepError;
+
+                        return deferred.promise;
                     });
             })
             // Catch all errors
             .catch(function(error) {
                 process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+            })
+            .finally(function() {
                 process.exit(1);
             });
     }

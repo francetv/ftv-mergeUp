@@ -30,7 +30,7 @@ module.exports = {
 
                         var mergeRequest;
                         body.some(function(MR) {
-                            if (MR.iid == data.id) {
+                            if (MR.iid == data.mergeId) {
                                 mergeRequest = MR;
                                 return true;
                             }
@@ -49,7 +49,8 @@ module.exports = {
                             return deferred.reject(new Error('id ' + data.id + ' not found'));
                         }
 
-                        return deferred.resolve(mergeRequest);
+                        data.mergeRequest = mergeRequest;
+                        return deferred.resolve();
                     }
                 );
 
@@ -135,6 +136,35 @@ module.exports = {
             return deferred.promise;
         });
     },
+    acceptMergeRequest: function acceptMergeRequest(mergeRequest, data) {
+        var deferred = RSVP.defer();
+        var options = {
+            url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id + '/merge',
+            body: {
+                private_token: config.gitlabPrivateToken
+            },
+            json: true
+        };
+
+        request.put(
+            options,
+            function(error, response, body) {
+                if (error) {
+                    return deferred.reject(error);
+                }
+                if (body.message) {
+                    return deferred.reject(body.message);
+                }
+                if (!Object.keys(body).length) {
+                    return deferred.reject(new Error('Empty answer'));
+                }
+
+                deferred.resolve();
+            }
+        );
+
+        return deferred.promise;
+    },
     getProjectId: function getProjectId(projectName) {
         var deferred = RSVP.defer();
         var encodedProjectPath = encodeURIComponent(projectName);
@@ -160,8 +190,8 @@ module.exports = {
                 }
 
                 deferred.resolve(body.id);
-
             });
+
         return deferred.promise;
     },
     whoAmI: function whoAmI() {
@@ -188,8 +218,8 @@ module.exports = {
                 }
 
                 deferred.resolve(body);
-
             });
+
         return deferred.promise;
     }
 };

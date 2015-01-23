@@ -1,4 +1,5 @@
-var RSVP = require('rsvp');
+var RSVP = require('rsvp'),
+    Hipchatter = require('hipchatter');
 
 var gitlab = require('./gitlab'),
     git = require('./git'),
@@ -6,8 +7,10 @@ var gitlab = require('./gitlab'),
 
 module.exports = {
     launch: function(args) {
-        this.mergeId = args.mergeId;
-        this.refuseMessage = args.refuseMessage;
+        this.data = {
+            mergeId: args.mergeId,
+            refuseMessage: args.refuseMessage
+        };
 
         switch (args.action) {
             case 'validate':
@@ -25,10 +28,7 @@ module.exports = {
         }
     },
     create: function() {
-        var mergeRequestData = {};
-        var data = {
-            id: this.mergeId
-        };
+        var self = this;
 
         RSVP.Promise.resolve()
             // Check for unstaged or changed files
@@ -44,56 +44,19 @@ module.exports = {
             })
             // Check if branch already exist and if so checkout on it
             .then(function() {
-                return git.exec('show-branch', ['mergeUp-' + data.id])
+                return git.exec('show-branch', ['mergeUp-' + self.data.mergeId])
                     .then(function() {
-                        git.exec('checkout', ['mergeUp-' + data.id]);
+                        git.exec('checkout', ['mergeUp-' + self.data.mergeId]);
                     })
                     .catch(function() {
                         RSVP.Promise.resolve()
-                            // Collect process config
+                            // Collect all GitLab data
                             .then(function() {
-                                return config.init()
-                                    .catch(function(error) {
-                                        var stepError = new Error('CONFIG - collecting process config');
-                                        stepError.parent = error;
-                                        throw stepError;
-                                    });
-                            })
-                            // Collect git config
-                            .then(function() {
-                                return git.loadConfig(data)
-                                    .catch(function(error) {
-                                        var stepError = new Error('GIT - collecting git config');
-                                        stepError.parent = error;
-                                        throw stepError;
-                                    });
-                            })
-                            // Get gitlab projectID for the upstream
-                            .then(function() {
-                                return gitlab.getProjectId(data.upstreamProject)
-                                    .catch(function(error) {
-                                        var stepError = new Error('GITLAB - getProjectId(upstream) failed');
-                                        stepError.parent = error;
-                                        throw stepError;
-                                    });
-                            })
-                            // Store previous promise result (upstream projectID)
-                            .then(function(upstreamId) {
-                                data.upstreamProjectId = upstreamId;
-                            })
-                            // Fetch merge request data
-                            .then(function() {
-                                return gitlab.getMergeRequest(data)
-                                    .catch(function(error) {
-                                        var stepError = new Error('GITLAB - merge request not found for this project');
-                                        stepError.parent = error;
-                                        throw stepError;
-                                    });
+                                return self.prepareGitLab();
                             })
                             // Create a temporary repository based on the fork
-                            .then(function(MR) {
-                                mergeRequestData = MR;
-                                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + data.forkProject + '.git']);
+                            .then(function() {
+                                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + self.data.forkProject + '.git']);
                             })
                             // Fetch the mergeUp repository
                             .then(function() {
@@ -101,12 +64,16 @@ module.exports = {
                             })
                             // Create the local branch
                             .then(function() {
-                                return git.exec('checkout', ['-b', 'mergeUp-' + mergeRequestData.iid, 'mergeUp/' + mergeRequestData.source_branch])
+                                return git.exec('checkout', ['-b', 'mergeUp-' + self.data.mergeRequest.iid, 'mergeUp/' + self.data.mergeRequest.source_branch])
                                     .catch(function(error) {
                                         var stepError = new Error('GIT - local branch creation failed');
                                         stepError.parent = error;
                                         throw stepError;
                                     });
+                            })
+                            // Success
+                            .then(function() {
+                                process.stdout.write('\n\nVerification env created successfully\n');
                             })
                             // Catch all errors
                             .catch(function(error) {
@@ -115,8 +82,6 @@ module.exports = {
                             // Remove the temporary repository
                             .finally(function() {
                                 git.exec('remote', ['remove', 'mergeUp']);
-
-                                process.stdout.write('\n\nVerification env created successfully\n');
                                 process.exit(1);
                             });
                     });
@@ -127,12 +92,74 @@ module.exports = {
             });
     },
     validate: function() {
-        console.log('validate');
+        var self = this;
+
+        RSVP.Promise.resolve()
+            // Check for mergeUp branch
+            .then(function() {
+                return git.exec('show-branch', ['mergeUp-' + self.data.mergeId])
+                    .catch(function(error) {
+                        var stepError = new Error('GIT - local branch for this merge request don\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
+                        throw stepError;
+                    });
+            })
+            // Collect all GitLab data
+            .then(function() {
+                return self.prepareGitLab();
+            })
+            // Accept the merge request
+            .then(function() {
+                return gitlab.acceptMergeRequest(self.data.mergeRequest, self.data);
+            })
+            // Send hipchat notification
+            .then(function() {
+                return gitlab.whoAmI()
+                    .catch(function(error) {
+                        var stepError = new Error('GITLAB - can\'t retrieve your user informations');
+                        stepError.parent = error;
+                        throw stepError;
+                    })
+                    .then(function(me) {
+                        var deferred = RSVP.defer();
+                        var hipchat = new Hipchatter(config.conf.hipchatUserToken);
+
+                        var mergeRequestUrl = config.conf.projectBaseUrl + self.data.upstreamProject + '/merge_requests/' + self.data.mergeRequest.iid + '/diffs';
+                        var message = 'Merge request <a href="' + mergeRequestUrl + '">' + self.data.mergeRequest.title + ' (#' + self.data.mergeRequest.iid + ')</a> on ' +
+                            self.data.upstreamProject + ' has been accepted by <i>' + me.name + '</i>';
+
+                        hipchat.notify(config.conf.hipchatRoomId, {
+                            message: message,
+                            color: 'green',
+                            token: config.conf.hipchatUserToken,
+                            notify: true
+                        }, function(err) {
+                            if (err === null) {
+                                process.stdout.write('\n\nSuccessfully notified the room for merge request #' + self.data.mergeRequest.iid + '\n');
+                                deferred.resolve();
+                            } else {
+                                var stepError = new Error('HIPCHAT - notification failed');
+                                stepError.parent = error;
+                                deferred.reject(stepError);
+                            }
+                        });
+
+                        return deferred.promise;
+                    });
+            })
+            // Catch all errors
+            .catch(function(error) {
+                process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+            })
+            .finally(function() {
+                process.exit(1);
+            });
     },
     refuse: function() {
         console.log('refuse');
     },
     clean: function() {
+        var self = this;
+
         RSVP.Promise.resolve()
             .then(function() {
                 return git.exec('ls-remote', ['--exit-code', 'mergeUp'])
@@ -152,9 +179,9 @@ module.exports = {
             // Remove branch(es)
             .then(function() {
                 if (this.mergeId) {
-                    return git.exec('branch', ['-D', 'mergeUp-' + this.mergeId])
+                    return git.exec('branch', ['-D', 'mergeUp-' + self.mergeId])
                         .catch(function(error) {
-                            var stepError = new Error('GIT - failed to delete branch mergeUp-' + this.mergeId);
+                            var stepError = new Error('GIT - failed to delete branch mergeUp-' + self.mergeId);
                             stepError.parent = error;
                             throw stepError;
                         });
@@ -166,14 +193,62 @@ module.exports = {
                             throw stepError;
                         });
                 }
-            }.bind(this))
+            })
+            // Success
+            .then(function() {
+                process.stdout.write('\n\nClean successful\n');
+            })
             // Catch all errors
             .catch(function(error) {
                 process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
             })
             .finally(function() {
-                process.stdout.write('\n\nClean successful\n');
                 process.exit(1);
+            });
+    },
+    prepareGitLab: function() {
+        var self = this;
+
+        return RSVP.resolve()
+            // Collect process config
+            .then(function() {
+                return config.init()
+                    .catch(function(error) {
+                        var stepError = new Error('CONFIG - collecting process config');
+                        stepError.parent = error;
+                        throw stepError;
+                    });
+            })
+            // Collect git config
+            .then(function() {
+                return git.loadConfig(self.data)
+                    .catch(function(error) {
+                        var stepError = new Error('GIT - collecting git config');
+                        stepError.parent = error;
+                        throw stepError;
+                    });
+            })
+            // Get gitlab projectID for the upstream
+            .then(function() {
+                return gitlab.getProjectId(self.data.upstreamProject)
+                    .catch(function(error) {
+                        var stepError = new Error('GITLAB - getProjectId(upstream) failed');
+                        stepError.parent = error;
+                        throw stepError;
+                    });
+            })
+            // Store previous promise result (upstream projectID)
+            .then(function(upstreamId) {
+                self.data.upstreamProjectId = upstreamId;
+            })
+            // Fetch merge request data
+            .then(function() {
+                return gitlab.getMergeRequest(self.data)
+                    .catch(function(error) {
+                        var stepError = new Error('GITLAB - merge request not found for this project');
+                        stepError.parent = error;
+                        throw stepError;
+                    });
             });
     }
 };
