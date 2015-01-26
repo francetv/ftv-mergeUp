@@ -113,38 +113,7 @@ module.exports = {
             })
             // Send hipchat notification
             .then(function() {
-                return gitlab.whoAmI()
-                    .catch(function(error) {
-                        var stepError = new Error('GITLAB - can\'t retrieve your user informations');
-                        stepError.parent = error;
-                        throw stepError;
-                    })
-                    .then(function(me) {
-                        var deferred = RSVP.defer();
-                        var hipchat = new Hipchatter(config.conf.hipchatUserToken);
-
-                        var mergeRequestUrl = config.conf.projectBaseUrl + self.data.upstreamProject + '/merge_requests/' + self.data.mergeRequest.iid + '/diffs';
-                        var message = 'Merge request <a href="' + mergeRequestUrl + '">' + self.data.mergeRequest.title + ' (#' + self.data.mergeRequest.iid + ')</a> on ' +
-                            self.data.upstreamProject + ' has been accepted by <i>' + me.name + '</i>';
-
-                        hipchat.notify(config.conf.hipchatRoomId, {
-                            message: message,
-                            color: 'green',
-                            token: config.conf.hipchatUserToken,
-                            notify: true
-                        }, function(err) {
-                            if (err === null) {
-                                process.stdout.write('\n\nSuccessfully notified the room for merge request #' + self.data.mergeRequest.iid + '\n');
-                                deferred.resolve();
-                            } else {
-                                var stepError = new Error('HIPCHAT - notification failed');
-                                stepError.parent = error;
-                                deferred.reject(stepError);
-                            }
-                        });
-
-                        return deferred.promise;
-                    });
+                return self.notifyHipchat();
             })
             // Catch all errors
             .catch(function(error) {
@@ -155,7 +124,36 @@ module.exports = {
             });
     },
     refuse: function() {
-        console.log('refuse');
+        var self = this;
+
+        RSVP.Promise.resolve()
+            // Check for mergeUp branch
+            .then(function() {
+                return git.exec('show-branch', ['mergeUp-' + self.data.mergeId])
+                    .catch(function(error) {
+                        var stepError = new Error('GIT - local branch for this merge request don\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
+                        throw stepError;
+                    });
+            })
+            // Collect all GitLab data
+            .then(function() {
+                return self.prepareGitLab();
+            })
+            // Accept the merge request
+            .then(function() {
+                return gitlab.refuseMergeRequest(self.data.mergeRequest, self.data);
+            })
+            // Send hipchat notification
+            .then(function() {
+                return self.notifyHipchat();
+            })
+            // Catch all errors
+            .catch(function(error) {
+                process.stdout.write('\n\nERROR ' + error.message + ' ' + (error.parent ? "(" + error.parent.message + ")" : '') + '\n');
+            })
+            .finally(function() {
+                process.exit(1);
+            });
     },
     clean: function() {
         var self = this;
@@ -249,6 +247,50 @@ module.exports = {
                         stepError.parent = error;
                         throw stepError;
                     });
+            });
+    },
+    notifyHipchat: function(action) {
+        var self = this;
+
+        return gitlab.whoAmI()
+            .catch(function(error) {
+                var stepError = new Error('GITLAB - can\'t retrieve your user informations');
+                stepError.parent = error;
+                throw stepError;
+            })
+            .then(function(me) {
+                var deferred = RSVP.defer();
+                var message = '';
+                var hipchat = new Hipchatter(config.conf.hipchatUserToken);
+
+                var mergeRequestUrl = config.conf.projectBaseUrl + self.data.upstreamProject + '/merge_requests/' + self.data.mergeRequest.iid + '/diffs';
+
+                if (action === 'validate') {
+                    message = 'Merge request <a href="' + mergeRequestUrl + '">' + self.data.mergeRequest.title + ' (#' + self.data.mergeRequest.iid + ')</a> on ' +
+                        self.data.upstreamProject + ' has been <b>accepted</b> by <i>' + me.name + '</i>';
+                } else {
+                    message = 'Merge request <a href="' + mergeRequestUrl + '">' + self.data.mergeRequest.title + ' (#' + self.data.mergeRequest.iid + ')</a> on ' +
+                        self.data.upstreamProject + ' has been <b>refused</b> by <i>' + me.name + '</i><br />Cause : <i>' + self.data.refuseMessage + '</i>';
+                }
+
+
+                hipchat.notify(config.conf.hipchatRoomId, {
+                    message: message,
+                    color: (action === 'validate') ? 'green' : 'red',
+                    token: config.conf.hipchatUserToken,
+                    notify: true
+                }, function(err) {
+                    if (err === null) {
+                        process.stdout.write('\n\nSuccessfully notified the room for merge request #' + self.data.mergeRequest.iid + '\n');
+                        deferred.resolve();
+                    } else {
+                        var stepError = new Error('HIPCHAT - notification failed');
+                        stepError.parent = error;
+                        deferred.reject(stepError);
+                    }
+                });
+
+                return deferred.promise;
             });
     }
 };

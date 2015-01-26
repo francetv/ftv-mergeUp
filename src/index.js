@@ -197,11 +197,11 @@ module.exports = {
 
                         hipchat.notify(config.conf.hipchatRoomId, {
                             message: message,
-                            color: 'green',
+                            color: 'yellow',
                             token: config.conf.hipchatUserToken,
                             notify: true
-                        }, function(err) {
-                            if (err === null) {
+                        }, function(error) {
+                            if (error === null) {
                                 process.stdout.write('\n\nSuccessfully notified the room for merge request #' + mergeRequestIid + '\n');
                                 deferred.resolve();
                             } else {

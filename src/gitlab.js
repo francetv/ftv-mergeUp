@@ -165,6 +165,43 @@ module.exports = {
 
         return deferred.promise;
     },
+    refuseMergeRequest: function acceptMergeRequest(mergeRequest, data) {
+        return RSVP.Promise.resolve()
+            .then(function() {
+                data.title = '[To fix] ' + mergeRequest.title;
+                return this.updateMergeRequest(mergeRequest, data);
+            })
+            .then(function() {
+                var deferred = RSVP.defer();
+                var options = {
+                    url: apiPrefix + 'projects/' + data.forkProjectId + '/merge_requests/' + mergeRequest.id + '/comments',
+                    body: {
+                        note: data.refuseMessage,
+                        private_token: config.gitlabPrivateToken
+                    },
+                    json: true
+                };
+
+                request.post(
+                    options,
+                    function(error, response, body) {
+                        if (error) {
+                            return deferred.reject(error);
+                        }
+                        if (body.message) {
+                            return deferred.reject(body.message);
+                        }
+                        if (!Object.keys(body).length) {
+                            return deferred.reject(new Error('Empty answer'));
+                        }
+
+                        deferred.resolve();
+                    }
+                );
+
+                return deferred.promise;
+            });
+    },
     getProjectId: function getProjectId(projectName) {
         var deferred = RSVP.defer();
         var encodedProjectPath = encodeURIComponent(projectName);
