@@ -45,7 +45,7 @@ module.exports = {
                             return false;
                         });
 
-                        if (data.id && !mergeRequest) {
+                        if (data.mergeId && !mergeRequest) {
                             return deferred.reject(new Error('id ' + data.id + ' not found'));
                         }
 
@@ -166,15 +166,19 @@ module.exports = {
         return deferred.promise;
     },
     refuseMergeRequest: function acceptMergeRequest(mergeRequest, data) {
+        var self = this;
+
         return RSVP.Promise.resolve()
             .then(function() {
-                data.title = '[To fix] ' + mergeRequest.title;
-                return this.updateMergeRequest(mergeRequest, data);
+                var titleRefusedPattern = '[To fix] ';
+                data.title = (!~mergeRequest.title.indexOf(titleRefusedPattern) ? titleRefusedPattern : '') + mergeRequest.title;
+
+                return self.updateMergeRequest(mergeRequest, data);
             })
             .then(function() {
                 var deferred = RSVP.defer();
                 var options = {
-                    url: apiPrefix + 'projects/' + data.forkProjectId + '/merge_requests/' + mergeRequest.id + '/comments',
+                    url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id + '/comments',
                     body: {
                         note: data.refuseMessage,
                         private_token: config.gitlabPrivateToken
