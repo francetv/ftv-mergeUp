@@ -29,6 +29,21 @@ program
     });
 
 program
+    .command('fix')
+    .description('update the merge request in order to fix it')
+    .action(function() {
+        mergeUp.automateMergeRequest({
+            forkProject: program.forkProject,
+            upstreamProject: program.upstreamProject,
+            forkBranch: program.forkBranch,
+            upstreamBranch: program.upstreamBranch,
+            title: program.title,
+            silentMode: program.silent,
+            fixMode: true
+        });
+    });
+
+program
     .command('verify')
     .usage('[mergeID]')
     .description('prepare an env to verify a merge request')

@@ -192,8 +192,16 @@ module.exports = {
                         var hipchat = new Hipchatter(config.conf.hipchatUserToken);
                         var mergeRequestIid = params.mergeRequest.iid;
                         var mergeRequestUrl = config.conf.projectBaseUrl + data.upstreamProject + '/merge_requests/' + mergeRequestIid + '/diffs';
-                        var message = ((params.isNew) ? 'New' : 'Updated') + ' merge request by <i>' + me.name + '</i> on <b>' + data.upstreamProject + '</b> : <a href="' +
-                            mergeRequestUrl + '">' + data.title + '</a>';
+
+                        var message = '';
+                        if (data.fixMode) {
+                            message = 'Merge request <a href="' + mergeRequestUrl + '">' + data.title + ' (#' + mergeRequestIid + ')</a> on <b>' + data.upstreamProject +
+                                '</b> has been fixed by <i>' + me.name +
+                                '</i>';
+                        } else {
+                            message = ((params.isNew) ? 'New' : 'Updated') + ' merge request by <i>' + me.name + '</i> on <b>' + data.upstreamProject + '</b> : <a href="' +
+                                mergeRequestUrl + '">' + data.title + ' (#' + mergeRequestIid + ')</a>';
+                        }
 
                         hipchat.notify(config.conf.hipchatRoomId, {
                             message: message,

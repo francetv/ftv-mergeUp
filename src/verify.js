@@ -113,7 +113,7 @@ module.exports = {
             })
             // Send hipchat notification
             .then(function() {
-                return self.notifyHipchat();
+                return self.notifyHipchat('validate');
             })
             // Catch all errors
             .catch(function(error) {
@@ -145,7 +145,7 @@ module.exports = {
             })
             // Send hipchat notification
             .then(function() {
-                return self.notifyHipchat();
+                return self.notifyHipchat('refuse');
             })
             // Catch all errors
             .catch(function(error) {

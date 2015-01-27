@@ -104,6 +104,9 @@ module.exports = {
     updateMergeRequest: function updateMergeRequest(mergeRequest, data) {
         return RSVP.Promise.resolve().then(function() {
             var deferred = RSVP.defer();
+
+            var titleRefusedPattern = '[To fix] ';
+            data.title = data.fixMode && ~mergeRequest.title.indexOf(titleRefusedPattern) ? data.title.replace(titleRefusedPattern, '') : data.title;
             var options = {
                 url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id,
                 body: {
