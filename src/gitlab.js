@@ -168,7 +168,7 @@ module.exports = {
 
         return deferred.promise;
     },
-    refuseMergeRequest: function acceptMergeRequest(mergeRequest, data) {
+    refuseMergeRequest: function refuseMergeRequest(mergeRequest, data) {
         var self = this;
 
         return RSVP.Promise.resolve()

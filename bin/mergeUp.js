@@ -48,7 +48,7 @@ program
     .usage('[mergeID]')
     .description('prepare an env to verify a merge request')
     .option('--validate', 'accept the merge request')
-    .option('--refuse <message>', 'add a refuse comment ont GitLab')
+    .option('--refuse <message>', 'add a refuse comment on GitLab')
     .option('--clean', 'remove all env created by this command')
     .action(function(cmd, options) {
         var infos = options || cmd;
