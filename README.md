@@ -47,7 +47,7 @@ You can now launch tests or try whatever you want with the code.
 ``mergeUp verify <iid> --validate`` allow you to accept directly from the terminal, after verifying it, the merge request on GitLab and notify the room about it.
 
 #### --refuse
-``mergeUp verify <iid> --refuse <message>`` post the ``message`the as a comment and add a prefix *[To Fix]* on the title. The room is also notified.
+``mergeUp verify <iid> --refuse <message>`` post the ``message`` the as a comment and add a prefix *[To Fix]* on the title. The room is also notified.
 
 #### --clean
 ``mergeUp verify [iid] --clean`` clean the environment created by ``verify`` for the given merge request (branch, remote etc.). 
