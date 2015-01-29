@@ -99,7 +99,7 @@ module.exports = {
             .then(function() {
                 return git.exec('show-branch', ['mergeUp-' + self.data.mergeId])
                     .catch(function(error) {
-                        var stepError = new Error('GIT - local branch for this merge request don\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
+                        var stepError = new Error('GIT - local branch for this merge request doesn\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
                         throw stepError;
                     });
             })
@@ -131,7 +131,7 @@ module.exports = {
             .then(function() {
                 return git.exec('show-branch', ['mergeUp-' + self.data.mergeId])
                     .catch(function(error) {
-                        var stepError = new Error('GIT - local branch for this merge request don\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
+                        var stepError = new Error('GIT - local branch for this merge request doesn\'t exist, run \'mergeUp verify ' + self.data.mergeId + '\' first ');
                         throw stepError;
                     });
             })
