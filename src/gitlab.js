@@ -30,6 +30,11 @@ module.exports = {
 
                         var mergeRequest;
                         body.some(function(MR) {
+                            if (MR.iid == data.mergeId) {
+                                mergeRequest = MR;
+                                return true;
+                            }
+
                             if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
                                 MR.target_branch === data.upstreamBranch) {
                                 data.title = data.title || MR.title;
@@ -40,7 +45,12 @@ module.exports = {
                             return false;
                         });
 
-                        return deferred.resolve(mergeRequest);
+                        if (data.mergeId && !mergeRequest) {
+                            return deferred.reject(new Error('id ' + data.id + ' not found'));
+                        }
+
+                        data.mergeRequest = mergeRequest;
+                        return deferred.resolve();
                     }
                 );
 
@@ -94,6 +104,9 @@ module.exports = {
     updateMergeRequest: function updateMergeRequest(mergeRequest, data) {
         return RSVP.Promise.resolve().then(function() {
             var deferred = RSVP.defer();
+
+            var titleRefusedPattern = '[To fix] ';
+            data.title = data.fixMode && ~mergeRequest.title.indexOf(titleRefusedPattern) ? data.title.replace(titleRefusedPattern, '') : data.title;
             var options = {
                 url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id,
                 body: {
@@ -126,6 +139,76 @@ module.exports = {
             return deferred.promise;
         });
     },
+    acceptMergeRequest: function acceptMergeRequest(mergeRequest, data) {
+        var deferred = RSVP.defer();
+        var options = {
+            url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id + '/merge',
+            body: {
+                private_token: config.gitlabPrivateToken
+            },
+            json: true
+        };
+
+        request.put(
+            options,
+            function(error, response, body) {
+                if (error) {
+                    return deferred.reject(error);
+                }
+                if (body.message) {
+                    return deferred.reject(body.message);
+                }
+                if (!Object.keys(body).length) {
+                    return deferred.reject(new Error('Empty answer'));
+                }
+
+                deferred.resolve();
+            }
+        );
+
+        return deferred.promise;
+    },
+    refuseMergeRequest: function refuseMergeRequest(mergeRequest, data) {
+        var self = this;
+
+        return RSVP.Promise.resolve()
+            .then(function() {
+                var titleRefusedPattern = '[To fix] ';
+                data.title = (!~mergeRequest.title.indexOf(titleRefusedPattern) ? titleRefusedPattern : '') + mergeRequest.title;
+
+                return self.updateMergeRequest(mergeRequest, data);
+            })
+            .then(function() {
+                var deferred = RSVP.defer();
+                var options = {
+                    url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_request/' + mergeRequest.id + '/comments',
+                    body: {
+                        note: data.refuseMessage,
+                        private_token: config.gitlabPrivateToken
+                    },
+                    json: true
+                };
+
+                request.post(
+                    options,
+                    function(error, response, body) {
+                        if (error) {
+                            return deferred.reject(error);
+                        }
+                        if (body.message) {
+                            return deferred.reject(body.message);
+                        }
+                        if (!Object.keys(body).length) {
+                            return deferred.reject(new Error('Empty answer'));
+                        }
+
+                        deferred.resolve();
+                    }
+                );
+
+                return deferred.promise;
+            });
+    },
     getProjectId: function getProjectId(projectName) {
         var deferred = RSVP.defer();
         var encodedProjectPath = encodeURIComponent(projectName);
@@ -151,8 +234,8 @@ module.exports = {
                 }
 
                 deferred.resolve(body.id);
-
             });
+
         return deferred.promise;
     },
     whoAmI: function whoAmI() {
@@ -179,8 +262,8 @@ module.exports = {
                 }
 
                 deferred.resolve(body);
-
             });
+
         return deferred.promise;
     }
 };
