@@ -56,7 +56,7 @@ module.exports = {
                             })
                             // Create a temporary repository based on the fork
                             .then(function() {
-                                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + self.data.forkProject + '.git']);
+                                return git.exec('remote', ['add', 'mergeUp', 'git@gitlab.ftven.net:' + self.data.mergeRequest.author.username + '.git']);
                             })
                             // Fetch the mergeUp repository
                             .then(function() {
