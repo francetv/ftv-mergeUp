@@ -35,7 +35,7 @@ module.exports = {
                                 return true;
                             }
 
-                            if (MR.source_project_id === data.forkProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.forkBranch &&
+                            if (MR.source_project_id === data.upstreamProjectId && MR.target_project_id === data.upstreamProjectId && MR.source_branch === data.localBranch &&
                                 MR.target_branch === data.upstreamBranch) {
                                 data.title = data.title || MR.title;
                                 mergeRequest = MR;
@@ -62,11 +62,11 @@ module.exports = {
             .then(function() {
                 var deferred = RSVP.defer();
                 var options = {
-                    url: apiPrefix + 'projects/' + data.forkProjectId + '/merge_requests/',
+                    url: apiPrefix + 'projects/' + data.upstreamProjectId + '/merge_requests/',
                     body: {
-                        source_project_id: data.forkProjectId,
+                        source_project_id: data.upstreamProjectId,
                         target_project_id: data.upstreamProjectId,
-                        source_branch: data.forkBranch,
+                        source_branch: data.localBranch,
                         target_branch: data.upstreamBranch,
                         title: data.title,
                         private_token: config.gitlabPrivateToken
