@@ -1,6 +1,6 @@
 {
   "name": "ftv-mergeup",
-  "version": "1.5.2",
+  "version": "2.0.0",
   "description": "Automates creating a merge request and notifying teammates",
   "main": "index.js",
   "repository": {
