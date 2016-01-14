@@ -65,26 +65,8 @@ module.exports = {
             // Check for branch equality
             .then(function() {
                 bar.tick(10);
-                if (data.forkBranch === data.upstreamBranch) {
-                    return RSVP.Promise.resolve()
-                        .then(function() {
-                            var deferred = RSVP.defer();
-
-                            inquirer.prompt([{
-                                type: 'confirm',
-                                name: 'sameBranchConfirm',
-                                message: '\nWARNING - merge request on the same origin/upstream branch name?',
-                                default: false
-                            }], function(answers) {
-                                if (!answers.sameBranchConfirm) {
-                                    return deferred.reject(new Error('no merge on the same origin/upstream branch name'));
-                                }
-
-                                deferred.resolve();
-                            });
-
-                            return deferred.promise;
-                        })
+                if (data.localBranch === data.upstreamBranch) {
+                    return RSVP.Promise.reject(new Error('You need another branch name to merge it on upstream/' + data.upstreamBranch))
                         .catch(function(error) {
                             var stepError = new Error('PROCESS');
                             stepError.parent = error;
@@ -114,30 +96,18 @@ module.exports = {
                         });
                     });
             })
-            // Push the working branch to the origin remote
+            // Push the working branch to the upstream remote
             .then(function(result) {
                 bar.tick(10);
-                return git.exec('push', ['origin', data.forkBranch, '-f'])
+                return git.exec('push', ['upstream', data.localBranch, '-f'])
                     .catch(function(error) {
                         var stepError = new Error('GIT - push failed');
                         stepError.parent = error;
                         throw stepError;
                     });
             })
-            // Get gitlab projectID for the fork
             .then(function() {
                 bar.tick(10);
-                return gitlab.getProjectId(data.forkProject)
-                    .catch(function(error) {
-                        var stepError = new Error('GITLAB - getProjectId(fork) failed');
-                        stepError.parent = error;
-                        throw stepError;
-                    });
-            })
-            // Get gitlab projectID for the upstream
-            .then(function(forkId) {
-                bar.tick(10);
-                data.forkProjectId = forkId;
                 return gitlab.getProjectId(data.upstreamProject)
                     .catch(function(error) {
                         var stepError = new Error('GITLAB - getProjectId(upstream) failed');

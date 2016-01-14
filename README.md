@@ -4,14 +4,13 @@ This node module allows you to handle all the merge request workflow.
 
 <u>Params</u> :
 * **'-t, --title'**, merge request title (ex: 'Bug fixes')
-* **'-p, --forkProject'**, fork project name (ex: username/project)
 * **'-P, --upstreamProject'**, upstream project name (ex: team/project)
-* **'-b, --forkBranch'**, fork branch name (ex: bugfix)
+* **'-b, --localBranch'**, local branch name (ex: bugfix)
 * **'-B, --upstreamBranch'**, upstream branch name (ex: dev)
 * **'-s, --silent'**, desactivate hipChat notification
 
 <u>The different steps are</u> :
-* Get config params (*forkProject, upstreamProject, forkBranch, upstreamBranch*) from your git context. 
+* Get config params (*upstreamProject, localBranch, upstreamBranch*) from your git context. 
 <br />All these params can be overwritten when you launch the command.
 * Call the GitLab API to search for an opened merge request with this title and corresponding to all the given params
 * Create or update the merge request depending on the previous call's answer
