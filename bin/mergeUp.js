@@ -11,9 +11,8 @@ program
     .version(pkg.version)
     .usage('[options]')
     .option('-t, --title <title>', 'merge request title (ex: \'Bug fixes\')')
-    .option('-p, --forkProject <projectName>', 'fork project name (ex: username/project)')
     .option('-P, --upstreamProject <projectName>', 'upstream project name (ex: team/project)')
-    .option('-b, --forkBranch <branch>', 'fork branch name (ex: bugfix)')
+    .option('-b, --localBranch <branch>', 'local branch name (ex: bugfix)')
     .option('-B, --upstreamBranch <branch>', 'upstream branch name (ex: dev)')
     .option('-s, --silent', 'desactivate hipChat notification');
 
@@ -33,9 +32,8 @@ program
     .description('update the merge request in order to fix it')
     .action(function() {
         mergeUp.automateMergeRequest({
-            forkProject: program.forkProject,
             upstreamProject: program.upstreamProject,
-            forkBranch: program.forkBranch,
+            localBranch: program.localBranch,
             upstreamBranch: program.upstreamBranch,
             title: program.title,
             silentMode: program.silent,
@@ -70,9 +68,8 @@ program.parse(process.argv);
 
 if (program.args.length === 0) {
     mergeUp.automateMergeRequest({
-        forkProject: program.forkProject,
         upstreamProject: program.upstreamProject,
-        forkBranch: program.forkBranch,
+        localBranch: program.localBranch,
         upstreamBranch: program.upstreamBranch,
         title: program.title,
         silentMode: program.silent

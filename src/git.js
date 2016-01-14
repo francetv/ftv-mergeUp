@@ -40,30 +40,25 @@ module.exports = {
                 return deferred.reject(new Error('Failed to load project git config file'));
             }
 
-            // If data.forkProject && data.upstreamProject are already set, moving on
-            if (data.forkProject && data.upstreamProject) {
+            // If data.upstreamProject are already set, moving on
+            if (data.upstreamProject) {
                 return deferred.resolve();
             }
 
             var config = ini.parse(fs.readFileSync(gitConfigPath, 'utf-8'));
-            var origin = config['remote "origin"'];
             var upstream = config['remote "upstream"'];
 
-            if (!origin || !origin.url || !upstream || !upstream.url) {
-                return deferred.reject(new Error('Failed to find origin or upstream remote in project git config'));
+            if (!upstream || !upstream.url) {
+                return deferred.reject(new Error('Failed to find upstream remote in project git config'));
             }
 
             var projectNamePattern = /[\w@.]+:(.+)\.git/i;
-            var originMatch = origin.url.match(projectNamePattern);
             var upstreamMatch = upstream.url.match(projectNamePattern);
 
-            if (!originMatch || !originMatch[1] || !upstreamMatch || !upstreamMatch[1]) {
-                return deferred.reject(new Error('Failed to parse and find origin or upstream project name'));
+            if (!upstreamMatch || !upstreamMatch[1]) {
+                return deferred.reject(new Error('Failed to parse and find upstream project name'));
             }
 
-            if (!data.forkProject) {
-                data.forkProject = originMatch[1];
-            }
             if (!data.upstreamProject) {
                 data.upstreamProject = upstreamMatch[1];
             }
@@ -94,13 +89,13 @@ module.exports = {
             .then(function() {
                 var deferred = RSVP.defer();
 
-                if (data.forkBranch) {
+                if (data.localBranch) {
                     return deferred.resolve();
                 }
 
                 this.exec('rev-parse --abbrev-ref HEAD')
-                    .then(function(forkBranch) {
-                        data.forkBranch = forkBranch.replace(/(\r\n|\n|\r)/gm, "");
+                    .then(function(localBranch) {
+                        data.localBranch = localBranch.replace(/(\r\n|\n|\r)/gm, "");
                         deferred.resolve();
                     })
                     .catch(function(error) {
